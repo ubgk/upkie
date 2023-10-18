@@ -35,6 +35,7 @@
 #include "upkie/config/layout.h"
 #include "upkie/observers/FloorContact.h"
 #include "upkie/observers/WheelOdometry.h"
+#include "upkie/observers/JointFilter.h"
 #include "upkie/utils/datetime_now_string.h"
 
 namespace spines::pi3hat {
@@ -43,6 +44,7 @@ using Pi3Hat = ::mjbots::pi3hat::Pi3Hat;
 using palimpsest::Dictionary;
 using upkie::observers::FloorContact;
 using upkie::observers::WheelOdometry;
+using upkie::observers::JointFilter;
 using vulp::actuation::Pi3HatInterface;
 using vulp::observation::ObserverPipeline;
 using vulp::observation::sources::CpuTemperature;
@@ -159,6 +161,16 @@ int main(const CommandLineArguments& args) {
   }
 
   ObserverPipeline observation;
+
+  // Observation: Filtered joint variables
+  JointFilter::Parameters joint_filter_params;
+  joint_filter_params.dt = 1.0 / args.spine_frequency;
+  joint_filter_params.cutoff_period = 0.2;
+  joint_filter_params.upper_leg_joints = upkie::config::upper_leg_joints();
+  joint_filter_params.wheels = upkie::config::wheel_joints();
+  joint_filter_params.variables = {"position", "velocity", "torque"};
+  auto joint_filter = std::make_shared<JointFilter>(joint_filter_params);
+  observation.append_observer(joint_filter);
 
   // Observation: CPU temperature
   auto cpu_temperature = std::make_shared<CpuTemperature>();
