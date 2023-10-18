@@ -75,6 +75,7 @@ void JointFilter::write(Dictionary& observation) {
   auto& output = observation(prefix());
   
   for (const auto& joint : joints_) {
+    output(joint) = Dictionary();
     auto& joint_output = output(joint);
 
     for (const auto& variable : params_.variables) {
