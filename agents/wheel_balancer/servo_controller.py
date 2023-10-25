@@ -11,6 +11,7 @@ import numpy as np
 from wheel_controller import WheelController
 
 from upkie.utils.clamp import clamp
+from upkie.utils.contact_models import MeasurementModel
 
 
 @gin.configurable
@@ -33,6 +34,7 @@ class ServoController:
         gain_scale: float,
         turning_gain_scale: float,
         wheel_distance: float,
+        measurement_model_path: str,
     ):
         """Create controller.
 
@@ -50,6 +52,7 @@ class ServoController:
         self.servo_action = None
         self.turning_gain_scale = turning_gain_scale
         self.wheel_balancer = WheelController()  # type: ignore
+        self.measurement_model = MeasurementModel(measurement_model_path)
 
     def initialize_servo_action(self, observation: Dict[str, Any]) -> None:
         """Initialize default servo action from initial observation.
@@ -91,6 +94,9 @@ class ServoController:
         if self.servo_action is None:
             self.initialize_servo_action(observation)
 
+        # Contact model update
+        self.measurement_model.cycle(observation, dt)
+
         # Compute wheel velocities for balancing
         self.wheel_balancer.cycle(observation, dt)
         wheel_velocities = self.wheel_balancer.get_wheel_velocities(
@@ -111,4 +117,5 @@ class ServoController:
         return {
             "servo": self.servo_action,
             "wheel_balancer": self.wheel_balancer.log(),
+            "contact_model": self.measurement_model.log(),
         }

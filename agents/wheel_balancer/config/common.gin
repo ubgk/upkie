@@ -20,6 +20,7 @@ import wheel_controller
 ServoController.gain_scale = 2.0
 ServoController.turning_gain_scale = 2.0
 ServoController.wheel_distance = 0.3048
+ServoController.measurement_model_path = 'agents/wheel_balancer/artifacts/contact_model.npz'
 
 WheelController.air_return_period = 1.0             # [s]
 WheelController.fall_pitch = 1.0                    # [rad]
