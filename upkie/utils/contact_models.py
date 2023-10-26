@@ -28,7 +28,8 @@ class MeasurementModel:
         Returns:
             Contact probability.
         """
-        return interpn(points=[self.wheel_torques, self.knee_torques], values=self.contact_probabilities, xi=xi)[0]
+        return interpn(points=[self.wheel_torques, self.knee_torques], 
+                       values=self.contact_probabilities, xi=xi, bounds_error=False)[0]
 
     def cycle(self, observation: dict, dt: float) -> float:
         """
@@ -41,8 +42,8 @@ class MeasurementModel:
         Returns:
             Contact probability.
         """
-        self._left_wheel_torque = observation['joint_filter']['left_wheel']['torque'] #* 0
-        self._left_knee_torque = observation['joint_filter']['left_knee']['torque'] #* 0
+        self._left_wheel_torque = observation['joint_filter']['left_wheel']['torque']
+        self._left_knee_torque = observation['joint_filter']['left_knee']['torque']
 
         try:
             self.p_contact = self.get_contact_probability([self._left_wheel_torque, self._left_knee_torque])
