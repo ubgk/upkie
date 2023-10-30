@@ -89,6 +89,7 @@ class TransitionModel:
         self.p_transition = -1
         self.conditional_p_touchdown = -1
         self.conditional_p_takeoff = -1
+        self.window_len = -1
 
     @staticmethod
     def logistic(x: float, midpoint: float, slope: float) -> float:
@@ -122,6 +123,8 @@ class TransitionModel:
         mask = dt < 1
         window = self.vertical_accelerations[mask]
 
+        self.window_len = len(window)
+
         print(self.avg_freq)
         f, t, spectogram = signal.spectrogram(window, fs=self.avg_freq, scaling='density', mode='psd', nperseg=self.window_size, noverlap=0)
 
@@ -151,9 +154,10 @@ class TransitionModel:
         return {
             "p_transition": self.p_transition,
             "total_power": self.total_power,
-            # "conditional_p_touchdown": self.conditional_p_touchdown,
-            # "conditional_p_takeoff": self.conditional_p_takeoff,
-            # "p_touchdown": self.p_touchdown,
-            # "p_takeoff": self.p_takeoff
+            "conditional_p_touchdown": self.conditional_p_touchdown,
+            "conditional_p_takeoff": self.conditional_p_takeoff, 
+            "p_touchdown": self.p_touchdown,
+            "p_takeoff": self.p_takeoff
 
         }
+    
