@@ -155,9 +155,9 @@ class TransitionModel:
             "p_transition": self.p_transition,
             "total_power": self.total_power,
             "conditional_p_touchdown": self.conditional_p_touchdown,
-            "conditional_p_takeoff": self.conditional_p_takeoff, 
+            "conditional_p_takeoff": self.conditional_p_takeoff,
             "p_touchdown": self.p_touchdown,
-            "p_takeoff": self.p_takeoff
-
+            "p_takeoff": self.p_takeoff,
+            "window_len": self.window_len,
         }
     
