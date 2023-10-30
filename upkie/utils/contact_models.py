@@ -115,7 +115,15 @@ class TransitionModel:
 
         # Compute the spectrogram        
         self.avg_freq = 1 / np.mean(np.diff(self.timestamps))
-        f, t, spectogram = signal.spectrogram(self.vertical_accelerations, fs=self.avg_freq, scaling='density', mode='psd', nperseg=self.window_size, noverlap=0)
+
+        # Take the last one second of data in the buffer
+        current_time = self.timestamps[-1]
+        dt = self.timestamps - current_time
+        mask = dt < 1
+        window = self.vertical_accelerations[mask]
+
+        print(self.avg_freq)
+        f, t, spectogram = signal.spectrogram(window, fs=self.avg_freq, scaling='density', mode='psd', nperseg=self.window_size, noverlap=0)
 
         # Check that we only have one window
         assert spectogram.shape[1] == 1 and t.shape == (1,), "We only expect one window at a time!"
