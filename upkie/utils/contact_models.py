@@ -118,8 +118,7 @@ class TransitionModel:
         self.avg_freq = 1 / np.mean(np.diff(self.timestamps))
 
         # Take the last one second of data in the buffer
-        current_time = self.timestamps[-1]
-        dt = self.timestamps - current_time
+        dt = self.timestamps[-1] - self.timestamps
         mask = dt < 1
         window = self.vertical_accelerations[mask]
 
