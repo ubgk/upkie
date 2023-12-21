@@ -19,6 +19,7 @@ from vulp.spine import SpineInterface
 from upkie.utils.raspi import configure_agent_process, on_raspi
 from upkie.utils.spdlog import logging
 
+import cProfile
 
 def parse_command_line_arguments() -> argparse.Namespace:
     """
@@ -105,7 +106,7 @@ if __name__ == "__main__":
 
     spine = SpineInterface()
     try:
-        run(spine, spine_config)
+        cProfile.run("run(spine, config)")
     except KeyboardInterrupt:
         logging.info("Caught a keyboard interrupt")
     except Exception:
