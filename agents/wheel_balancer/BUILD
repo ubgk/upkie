@@ -14,9 +14,6 @@ py_library(
         "servo_controller.py",
         "wheel_controller.py",
     ],
-    data = [
-        ":artifacts",
-    ],
     deps = [
         "//upkie/observers/base_pitch",
         "//upkie/utils:clamp",

@@ -23,6 +23,12 @@ py_library(
 py_library(
     name = "contact_models",
     srcs = ["contact_models.py"],
+    deps = [
+        ":spdlog",
+    ],
+    data = [
+        ":artifacts",
+    ],
 )
 
 py_library(

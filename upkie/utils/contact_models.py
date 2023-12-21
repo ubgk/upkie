@@ -16,6 +16,16 @@ class MeasurementModel:
         Args:
             model_path: Path to the precomputed measurement model.
         """
+        # Print the model path
+        print(f"Loading measurement model from {model_path}")
+
+        # Print the current directory
+        import os
+        print(f"Current directory: {os.getcwd()}")
+
+        # List the files in the current directory
+        print(f"Files in current directory: {os.listdir()}")
+
         data = np.load(model_path)
         self.wheel_torques = data['wheel_torques']
         self.knee_torques = data['knee_torques']
@@ -124,7 +134,6 @@ class TransitionModel:
 
         self.window_len = len(window)
 
-        print(self.avg_freq)
         f, t, spectogram = signal.spectrogram(window, fs=self.avg_freq, scaling='density', mode='psd', nperseg=self.window_size, noverlap=0)
 
         # Check that we only have one window

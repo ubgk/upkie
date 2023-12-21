@@ -34,7 +34,7 @@ WheelController.max_yaw_velocity = 1.0              # [rad] / [s]
 WheelController.turning_deadband = 0.3
 WheelController.turning_decision_time = 0.2         # [s]
 
-MeasurementModel.model_path = 'artifacts/contact_model.npz'
+MeasurementModel.model_path = 'upkie/utils/artifacts/contact_model.npz'
 TransitionModel.transition_midpoint = 0.5
 TransitionModel.transition_slope = 10
 TransitionModel.touchdown_midpoint = 4
