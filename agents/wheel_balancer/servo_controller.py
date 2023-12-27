@@ -100,13 +100,21 @@ class ServoController:
         # Measurement model update
         self.measurement_model.cycle(observation)
 
+        end = time.time()
+        delta = end - start
+        delta_ms = delta * 1000
+        print(f"[Measurement] Cycle time: {delta_ms:.4f} ms")
+
+        start = time.time()
+
         # Transition model update
         self.transition_model.cycle(observation)
 
         end = time.time()
         delta = end - start
         delta_ms = delta * 1000
-        print(f"Cycle time: {delta_ms:.4f} ms")
+        print(f"[Transition] Cycle time: {delta_ms:.4f} ms")
+        print()
 
         # Compute wheel velocities for balancing
         self.wheel_balancer.cycle(observation, dt)
