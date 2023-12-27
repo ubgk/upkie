@@ -75,7 +75,7 @@ void JointFilter::read(const Dictionary& observation) {
   // Get the current time
   const auto end = std::chrono::steady_clock::now();
   const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  spdlog::debug("[JointFilter] read() took {} us", elapsed.count());
+  spdlog::warn("[JointFilter] read() took {} us", elapsed.count());
 }
 
 void JointFilter::write(Dictionary& observation) {
@@ -96,7 +96,7 @@ void JointFilter::write(Dictionary& observation) {
   // Get the current time
   const auto end = std::chrono::steady_clock::now();
   const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  spdlog::debug("[JointFilter] write() took {} us", elapsed.count());
+  spdlog::warn("[JointFilter] write() took {} us", elapsed.count());
 }
 
 }  // namespace upkie::observers
