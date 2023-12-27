@@ -74,14 +74,14 @@ void JointFilter::read(const Dictionary& observation) {
 void JointFilter::write(Dictionary& observation) {
   auto& output = observation(prefix());
   
-  for (const auto& joint : joints_) {
+  /*for (const auto& joint : joints_) {
     output(joint) = Dictionary();
     auto& joint_output = output(joint);
 
     for (const auto& variable : params_.variables) {
       joint_output(variable) = filtered_variables_[joint][variable];
     }
-  }
+  }*/
 }
 
 }  // namespace upkie::observers
