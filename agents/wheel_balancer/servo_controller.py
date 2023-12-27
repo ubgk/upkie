@@ -95,26 +95,26 @@ class ServoController:
         if self.servo_action is None:
             self.initialize_servo_action(observation)
 
-        start = time.time()
+        # start = time.time()
 
         # Measurement model update
         # self.measurement_model.cycle(observation)
 
-        end = time.time()
-        delta = end - start
-        delta_ms = delta * 1000
-        print(f"[Measurement] Cycle time: {delta_ms:.4f} ms")
+        # end = time.time()
+        # delta = end - start
+        # delta_ms = delta * 1000
+        # print(f"[Measurement] Cycle time: {delta_ms:.4f} ms")
 
-        start = time.time()
+        # start = time.time()
 
         # Transition model update
         # self.transition_model.cycle(observation)
 
-        end = time.time()
-        delta = end - start
-        delta_ms = delta * 1000
-        print(f"[Transition] Cycle time: {delta_ms:.4f} ms")
-        print()
+        # end = time.time()
+        # delta = end - start
+        # delta_ms = delta * 1000
+        # print(f"[Transition] Cycle time: {delta_ms:.4f} ms")
+        # print()
 
         # Compute wheel velocities for balancing
         self.wheel_balancer.cycle(observation, dt)
