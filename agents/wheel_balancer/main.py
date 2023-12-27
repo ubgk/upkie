@@ -19,6 +19,8 @@ from vulp.spine import SpineInterface
 from upkie.utils.raspi import configure_agent_process, on_raspi
 from upkie.utils.spdlog import logging
 
+import time
+
 import cProfile
 
 def parse_command_line_arguments() -> argparse.Namespace:
@@ -69,7 +71,13 @@ def run(
     spine.start(spine_config)
     observation = spine.get_observation()  # pre-reset observation
     while True:
+        start = time.time()
         observation = spine.get_observation()
+        end = time.time()
+        delta = end - start
+        delta_ms = delta * 1000
+        print(f"[Observation] Cycle time: {delta_ms:.4f} ms")
+
         action = controller.cycle(observation, dt)
         spine.set_action(action)
         debug["rate"] = {"slack": rate.slack}
