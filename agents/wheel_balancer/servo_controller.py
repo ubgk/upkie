@@ -120,7 +120,7 @@ class ServoController:
 
         return {
             "servo": self.servo_action,
-            # "wheel_balancer": self.wheel_balancer.log(),
+            "wheel_balancer": self.wheel_balancer.log(),
             # "measurement_model": self.measurement_model.log(),
-            "transition_model": self.transition_model.log(),
+            # "transition_model": self.transition_model.log(),
         }
