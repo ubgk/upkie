@@ -76,10 +76,19 @@ def run(
         end = time.time()
         delta = end - start
         delta_ms = delta * 1000
-        print(f"[Observation] Cycle time: {delta_ms:.4f} ms")
+        
+        obs_str = f"[Observation] time: {delta_ms:.4f} ms"
         action = controller.cycle(observation, dt)
+
         spine.set_action(action)
         debug["rate"] = {"slack": rate.slack}
+        
+        end = time.time()
+        delta = end - start
+        delta_ms = delta * 1000
+        print(obs_str)
+        print(f"[Cycle] time: {delta_ms:.4f} ms")
+        
         rate.sleep()
 
 
