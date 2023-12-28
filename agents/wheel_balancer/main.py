@@ -12,7 +12,7 @@ else:
     print("MSGPACK_PUREPYTHON environment variable is already set to 1")
 
 import msgpack
-print("msgpack imported successfully", msgpack.Unpacker)
+print("msgpack imported successfully", msgpack, msgpack.Unpacker)
     
 
 import argparse
