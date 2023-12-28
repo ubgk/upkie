@@ -4,6 +4,16 @@
 # Copyright 2022 Stéphane Caron
 # SPDX-License-Identifier: Apache-2.0
 
+import os
+# Check if MSGPACK_PUREPYTHON environment variable is set
+if os.environ.get("MSGPACK_PUREPYTHON") is None:
+    print("MSGPACK_PUREPYTHON environment variable is not set")
+    # Set it if it is not
+    os.environ["MSGPACK_PUREPYTHON"] = "1"
+    print("MSGPACK_PUREPYTHON environment variable is now set to 1")
+else:
+    print("MSGPACK_PUREPYTHON environment variable is already set to 1")
+
 import argparse
 import socket
 import traceback
