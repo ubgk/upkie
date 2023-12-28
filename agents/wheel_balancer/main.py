@@ -41,7 +41,7 @@ def parse_command_line_arguments() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-
+import time
 def run(
     spine: SpineInterface,
     spine_config: Dict[str, Any],
@@ -77,7 +77,6 @@ def run(
         delta = end - start
         delta_ms = delta * 1000
         print(f"[Observation] Cycle time: {delta_ms:.4f} ms")
-
         action = controller.cycle(observation, dt)
         spine.set_action(action)
         debug["rate"] = {"slack": rate.slack}
