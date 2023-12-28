@@ -10,8 +10,9 @@ if os.environ.get("MSGPACK_PUREPYTHON") is None:
     print("MSGPACK_PUREPYTHON environment variable is not set")
 else:
     print("MSGPACK_PUREPYTHON environment variable is already set to 1")
-    import msgpack
-    print("msgpack imported successfully", msgpack.Unpacker)
+
+import msgpack
+print("msgpack imported successfully", msgpack.Unpacker)
     
 
 import argparse
