@@ -69,7 +69,7 @@ py_binary(
         ":controllers",
         "@vulp//:python",
         requirement("loop_rate_limiters"),
-        requirement("mpacklog"),
+        # requirement("mpacklog"),
         requirement("pyyaml"),
     ],
 )
