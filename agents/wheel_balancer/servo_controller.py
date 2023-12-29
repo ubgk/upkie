@@ -98,7 +98,7 @@ class ServoController:
         # start = time.time()
 
         # Measurement model update
-        # self.measurement_model.cycle(observation)
+        self.measurement_model.cycle(observation)
 
         # end = time.time()
         # delta = end - start
@@ -108,7 +108,7 @@ class ServoController:
         # start = time.time()
 
         # Transition model update
-        # self.transition_model.cycle(observation)
+        self.transition_model.cycle(observation)
 
         # end = time.time()
         # delta = end - start
