@@ -60,6 +60,8 @@ class MeasurementModel:
 
         self.p_contact = self.get_contact_probability([self._left_wheel_torque, self._left_knee_torque])
 
+        assert 0.0 <= self.p_contact <= 1.00, f"Invalid measurement probability {self.p_contact=}"
+
         return self.p_contact
     
     def log(self) -> dict:
@@ -129,7 +131,7 @@ class TransitionModel:
 
         # Take the last one second of data in the buffer
         dt = self.timestamps[-1] - self.timestamps
-        mask = dt < 1
+        mask = dt < 1 # This would filter out the initial zeroes, as their timestamps will also be zeroes.
         window = self.vertical_accelerations[mask]
 
         self.window_len = len(window)
@@ -140,7 +142,9 @@ class TransitionModel:
         assert spectogram.shape[1] == 1 and t.shape == (1,), "We only expect one window at a time!"
 
         # Compute the total power in the window, and the probability of a transition in any direction
+        
         self.total_power = spectogram.sum()
+        self.total_power_norm = self.vertical_accelerations[mask] / self.vertical_accelerations[mask]
         self.p_transition = self.logistic(self.total_power, self.transition_midpoint, self.transition_slope)
 
         # Compute the median frequency
@@ -162,6 +166,7 @@ class TransitionModel:
         return {
             "p_transition": self.p_transition,
             "total_power": self.total_power,
+            "total_power_norm": self.total_power_norm,
             "conditional_p_touchdown": self.conditional_p_touchdown,
             "conditional_p_takeoff": self.conditional_p_takeoff,
             "p_touchdown": self.p_touchdown,
