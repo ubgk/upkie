@@ -43,8 +43,6 @@ py_binary(
         "//upkie/envs",
         "//upkie/utils:filters",
         "//upkie/utils:raspi",
-        ":reward",  # needed by gin config
-        ":settings",
         "//upkie/utils:robot_state",
         ":common",
     ],
