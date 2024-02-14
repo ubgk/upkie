@@ -17,7 +17,6 @@ py_library(
         "//upkie/utils:clamp",
         "//upkie/utils:filters",
         "//upkie/utils:contact_models",
-        requirement("gin-config"),
     ],
 )
 
@@ -63,9 +62,6 @@ py_binary(
         "//upkie/utils:spdlog",
         ":controllers",
         "@vulp//:python",
-        requirement("loop_rate_limiters"),
-        # requirement("mpacklog"),
-        requirement("pyyaml"),
     ],
 )
 
