@@ -48,9 +48,18 @@ class ServoController:
         ## Additional gain scale added when the robot is turning to keep the
         ## legs stiff while the ground pulls them apart.
         self.turning_gain_scale = turning_gain_scale
+
         self.wheel_balancer = WheelController()  # type: ignore
         self.measurement_model = MeasurementModel()
         self.transition_model = TransitionModel()
+
+        self.__servo_action = None
+        self.__wheel_balancer = WheelController()  # type: ignore
+
+    @property
+    def wheel_radius(self) -> float:
+        """!Wheel radius in [m]."""
+        return self.__wheel_balancer.wheel_radius
 
     def initialize_servo_action(self, observation: dict) -> None:
         """!
