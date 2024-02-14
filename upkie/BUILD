@@ -1,6 +1,6 @@
 # -*- python -*-
 #
-# Copyright 2023 Inria
+# SPDX-License-Identifier: Apache-2.0
 
 package(default_visibility = ["//visibility:public"])
 
@@ -14,5 +14,12 @@ py_library(
         "//upkie/envs",
         "//upkie/observers/base_pitch",
         "//upkie/utils:python",
+    ],
+)
+
+cc_library(
+    name = "version",
+    hdrs = [
+        "version.h",
     ],
 )

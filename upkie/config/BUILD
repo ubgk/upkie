@@ -1,9 +1,8 @@
 # -*- python -*-
 #
-# Copyright 2022 Stéphane Caron
+# SPDX-License-Identifier: Apache-2.0
 
 package(default_visibility = ["//visibility:public"])
-load("@pip_upkie//:requirements.bzl", "requirement")
 
 py_library(
     name = "config",
@@ -12,9 +11,6 @@ py_library(
     ],
     data = [
         "spine.yaml",
-    ],
-    deps = [
-        requirement("pyyaml"),
     ],
 )
 

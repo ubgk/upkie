@@ -1,36 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2023 Inria
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 import abc
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 import gymnasium
 import numpy as np
 from loop_rate_limiters import RateLimiter
+from numpy.typing import NDArray
 from vulp.spine import SpineInterface
 
 import upkie.config
 from upkie.observers.base_pitch import compute_base_pitch_from_imu
 from upkie.utils.exceptions import UpkieException
 from upkie.utils.nested_update import nested_update
-
-from .init_randomization import InitRandomization
-from .reward import Reward
-from .survival_reward import SurvivalReward
+from upkie.utils.robot_state import RobotState
 
 
 class UpkieBaseEnv(abc.ABC, gymnasium.Env):
@@ -42,9 +29,9 @@ class UpkieBaseEnv(abc.ABC, gymnasium.Env):
 
     This base environment has the following attributes:
 
-    - ``config``: Configuration dictionary sent to the spine.
     - ``fall_pitch``: Fall pitch angle, in radians.
-    - ``reward``: Reward function.
+    - ``init_state``: Initial state for the floating base of the robot, which
+        may be randomized upon resets.
 
     @note This environment is made to run on a single CPU thread rather than on
     GPU/TPU. The downside for reinforcement learning is that computations are
@@ -53,21 +40,20 @@ class UpkieBaseEnv(abc.ABC, gymnasium.Env):
     """
 
     __frequency: Optional[float]
+    __log: dict
+    __rate: Optional[RateLimiter]
     __regulate_frequency: bool
     _spine: SpineInterface
+    _spine_config: dict
     fall_pitch: float
-    init_rand: InitRandomization
-    rate: Optional[RateLimiter]
-    reward: Reward
-    spine_config: dict
+    init_state: RobotState
 
     def __init__(
         self,
         fall_pitch: float = 1.0,
         frequency: Optional[float] = 200.0,
+        init_state: Optional[RobotState] = None,
         regulate_frequency: bool = True,
-        init_rand: Optional[InitRandomization] = None,
-        reward: Optional[Reward] = None,
         shm_name: str = "/vulp",
         spine_config: Optional[dict] = None,
         spine_retries: int = 10,
@@ -75,14 +61,12 @@ class UpkieBaseEnv(abc.ABC, gymnasium.Env):
         """!
         Initialize environment.
 
-        @param fall_pitch Fall pitch angle, in radians.
+        @param fall_pitch Fall detection pitch angle, in radians.
         @param frequency Regulated frequency of the control loop, in Hz. Can be
             set even when `regulate_frequency` is false, as some environments
             make use of e.g. `self.dt` internally.
+        @param init_state Initial state of the robot, only used in simulation.
         @param regulate_frequency Enables loop frequency regulation.
-        @param init_rand Magnitude of the random disturbance added to the
-            default initial state when the environment is reset.
-        @param reward Reward function.
         @param shm_name Name of shared-memory file to exchange with the spine.
         @param spine_config Additional spine configuration overriding the
             defaults from ``//config:spine.yaml``. The combined configuration
@@ -95,18 +79,19 @@ class UpkieBaseEnv(abc.ABC, gymnasium.Env):
             nested_update(merged_spine_config, spine_config)
         if regulate_frequency and frequency is None:
             raise UpkieException(f"{regulate_frequency=} but {frequency=}")
-        if init_rand is None:
-            init_rand = InitRandomization()
-        if reward is None:
-            reward = SurvivalReward()
+        if init_state is None:
+            init_state = RobotState(
+                position_base_in_world=np.array([0.0, 0.0, 0.6])
+            )
 
         self.__frequency = frequency
+        self.__log = {}
+        self.__rate = None
         self.__regulate_frequency = regulate_frequency
         self._spine = SpineInterface(shm_name, retries=spine_retries)
+        self._spine_config = merged_spine_config
         self.fall_pitch = fall_pitch
-        self.init_rand = init_rand
-        self.reward = reward
-        self.spine_config = merged_spine_config
+        self.init_state = init_state
 
     @property
     def dt(self) -> Optional[float]:
@@ -124,6 +109,15 @@ class UpkieBaseEnv(abc.ABC, gymnasium.Env):
         """
         return self.__frequency
 
+    def update_init_rand(self, **kwargs) -> None:
+        """!
+        Update initial-state randomization.
+
+        Keyword arguments are forwarded as is to @ref
+        upkie.utils.robot_state_randomization.RobotStateRandomization.update.
+        """
+        self.init_state.randomization.update(**kwargs)
+
     def close(self) -> None:
         """!
         Stop the spine properly.
@@ -135,7 +129,7 @@ class UpkieBaseEnv(abc.ABC, gymnasium.Env):
         *,
         seed: Optional[int] = None,
         options: Optional[dict] = None,
-    ) -> Tuple[np.ndarray, Dict]:
+    ) -> Tuple[NDArray[float], dict]:
         """!
         Resets the spine and get an initial observation.
 
@@ -151,33 +145,30 @@ class UpkieBaseEnv(abc.ABC, gymnasium.Env):
         super().reset(seed=seed)
         self._spine.stop()
         self.__reset_rate()
-        self.__reset_initial_robot_state()
-        self._spine.start(self.spine_config)
+        self.__reset_init_state()
+        self._spine.start(self._spine_config)
         self._spine.get_observation()  # might be a pre-reset observation
-        observation_dict = self._spine.get_observation()
-        self.parse_first_observation(observation_dict)
-        observation = self.vectorize_observation(observation_dict)
-        info = {
-            "action": {},
-            "observation": observation_dict,
-        }
+        spine_observation = self._spine.get_observation()
+        self.parse_first_observation(spine_observation)
+        observation = self.get_env_observation(spine_observation)
+        info = {"spine_observation": spine_observation}
         return observation, info
 
     def __reset_rate(self):
-        self.rate = None
         if self.__regulate_frequency:
             rate_name = f"{self.__class__.__name__} rate limiter"
-            self.rate = RateLimiter(self.__frequency, name=rate_name)
+            self.__rate = RateLimiter(self.__frequency, name=rate_name)
 
-    def __reset_initial_robot_state(self):
-        orientation_matrix = self.init_rand.sample_orientation(self.np_random)
+    def __reset_init_state(self):
+        init_state, np_random = self.init_state, self.np_random
+        orientation_matrix = init_state.sample_orientation(np_random)
         qx, qy, qz, qw = orientation_matrix.as_quat()
         orientation_quat = np.array([qw, qx, qy, qz])
-        position = self.init_rand.sample_position(self.np_random)
-        linear_velocity = self.init_rand.sample_linear_velocity(self.np_random)
-        omega = self.init_rand.sample_angular_velocity(self.np_random)
+        position = init_state.sample_position(np_random)
+        linear_velocity = init_state.sample_linear_velocity(np_random)
+        omega = init_state.sample_angular_velocity(np_random)
 
-        bullet_config = self.spine_config["bullet"]
+        bullet_config = self._spine_config["bullet"]
         reset = bullet_config["reset"]
         reset["orientation_base_in_world"] = orientation_quat
         reset["position_base_in_world"] = position
@@ -186,8 +177,8 @@ class UpkieBaseEnv(abc.ABC, gymnasium.Env):
 
     def step(
         self,
-        action: np.ndarray,
-    ) -> Tuple[np.ndarray, float, bool, bool, dict]:
+        action: NDArray[float],
+    ) -> Tuple[NDArray[float], float, bool, bool, dict]:
         """!
         Run one timestep of the environment's dynamics. When the end of the
         episode is reached, you are responsible for calling `reset()` to reset
@@ -206,58 +197,79 @@ class UpkieBaseEnv(abc.ABC, gymnasium.Env):
               i.e. before a terminal state is reached. When true, the user
               needs to call :func:`reset()`.
             - ``info``: Dictionary with auxiliary diagnostic information. For
-              us this will be the full observation dictionary coming sent by
-              the spine.
+              us this is the full observation dictionary coming from the spine.
         """
-        if self.rate is not None:
-            self.rate.sleep()  # wait until clock tick to send the action
+        if self.__regulate_frequency:
+            self.__rate.sleep()  # wait until clock tick to send the action
 
-        action_dict = self.dictionarize_action(action)
-        self._spine.set_action(action_dict)
-        observation_dict = self._spine.get_observation()
-        observation = self.vectorize_observation(observation_dict)
-        reward = self.reward.get(observation, action)
-        terminated = self.detect_fall(observation_dict)
+        # Act
+        spine_action = self.get_spine_action(action)
+        if self.__log:
+            spine_action["env"] = self.__log
+        self._spine.set_action(spine_action)
+
+        # Observe
+        spine_observation = self._spine.get_observation()
+        observation = self.get_env_observation(spine_observation)
+        reward = self.get_reward(observation, action)
+        terminated = self.detect_fall(spine_observation)
         truncated = False
-        info = {
-            "action": action_dict,
-            "observation": observation_dict,
-        }
+        info = {"spine_observation": spine_observation}
         return observation, reward, terminated, truncated, info
 
-    def detect_fall(self, observation_dict: dict) -> bool:
+    def detect_fall(self, spine_observation: dict) -> bool:
         """!
         Detect a fall based on the body-to-world pitch angle.
 
-        @param observation_dict Observation dictionary with an "imu" key.
+        @param spine_observation Observation dictionary with an "imu" key.
         @returns True if and only if a fall is detected.
         """
-        imu = observation_dict["imu"]
+        imu = spine_observation["imu"]
         pitch = compute_base_pitch_from_imu(imu["orientation"])
         return abs(pitch) > self.fall_pitch
 
-    @abc.abstractmethod
-    def parse_first_observation(self, observation_dict: dict) -> None:
+    def parse_first_observation(self, spine_observation: dict) -> None:
         """!
         Parse first observation after the spine interface is initialized.
 
-        @param observation_dict First observation.
+        @param spine_observation First observation.
+
+        This method is an optional way for environments to record some state
+        (abstracted away from the agnet) at reset.
         """
 
     @abc.abstractmethod
-    def vectorize_observation(self, observation_dict: dict) -> np.ndarray:
+    def get_env_observation(self, spine_observation: dict):
         """!
-        Extract observation vector from a full observation dictionary.
+        Extract environment observation from spine observation dictionary.
 
-        @param observation_dict Full observation dictionary from the spine.
-        @returns Observation vector.
+        @param spine_observation Spine observation dictionary.
+        @returns Environment observation.
         """
 
     @abc.abstractmethod
-    def dictionarize_action(self, action: np.ndarray) -> dict:
+    def get_reward(self, observation, action) -> float:
         """!
-        Convert action vector into a spine action dictionary.
+        Get reward from observation and action.
 
-        @param action Action vector.
-        @returns Action dictionary.
+        @param observation Environment observation.
+        @param action Environment action.
+        @returns Reward.
         """
+
+    @abc.abstractmethod
+    def get_spine_action(self, action) -> dict:
+        """!
+        Convert environment action to a spine action dictionary.
+
+        @param action Environment action.
+        @returns Spine action dictionary.
+        """
+
+    def log(self, new_log: dict) -> None:
+        """!
+        Log anything to the action dictionary.
+
+        @param new_log New log entry.
+        """
+        self.__log = new_log

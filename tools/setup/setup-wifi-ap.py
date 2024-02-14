@@ -1,27 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2022 Stéphane Caron
 # Copyright 2023 Inria
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 #
 # This file incorporates work covered by the following copyright and
 # permission notice:
 #
 #     setup-system.py from github.com:mjbots/quad
 #     Copyright 2018-2020 Josh Pieper
-#     License: Apache-2.0
+#     SPDX-License-Identifier: Apache-2.0
 
 
 """Set up a Raspberry Pi 4b to operate a Wi-Fi access point.
@@ -47,6 +36,12 @@ logging_depth = 0
 
 
 def log_message(message: str, indent: int = 0) -> None:
+    """Log a single message.
+
+    Args:
+        message: Message to log.
+        indent: Indentation level.
+    """
     logging_indent = " | " * (logging_depth + indent)
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
     print(f"{now}: {logging_indent}{message}")
@@ -80,7 +75,8 @@ def log_method(func):
 def parse_command_line_arguments() -> argparse.Namespace:
     """Parse command-line arguments.
 
-    Returns:
+    Returns
+    -------
         Namespace resulting from parsing command-line arguments.
     """
     parser = argparse.ArgumentParser(description=__doc__)
@@ -115,6 +111,7 @@ def parse_command_line_arguments() -> argparse.Namespace:
 
 @log_method
 def run(*args, **kwargs):
+    """Run a subprocess."""
     subprocess.check_call(*args, shell=True, **kwargs)
 
 
@@ -200,6 +197,12 @@ def install_packages():
 
 @log_method
 def configure_interfaces(wlan_prefix, eth_prefix):
+    """Configure network interfaces.
+
+    Args:
+        wlan_prefix: IP prefix (XXX.YYY.ZZZ) for the wireless network.
+        eth_prefix: IP prefix (XXX.YYY.ZZZ) for the wired network.
+    """
     ensure_contents(
         "/etc/network/interfaces",
         """# interfaces(5) file used by ifup(8) and ifdown(8)
@@ -271,6 +274,13 @@ static routers={wlan_prefix}.1
 
 @log_method
 def configure_hostapd(ssid, wpa_passphrase, country_code):
+    """Configure the Wi-Fi access point.
+
+    Args:
+        ssid: Name of the network (SSID).
+        wpa_passphrase: Passphrase.
+        country_code: Two-letter country code.
+    """
     ensure_contents(
         "/etc/hostapd/hostapd.conf",
         f"""country_code={country_code}
@@ -316,6 +326,11 @@ rsn_pairwise=CCMP
 
 @log_method
 def configure_dnsmasq(wlan_prefix):
+    """Configure dnsmasq.
+
+    Args:
+        wlan_prefix: IP prefix (XXX.YYY.ZZZ) for the wireless network.
+    """
     ensure_contents(
         "/etc/dnsmasq.conf",
         f"""interface=wlan0

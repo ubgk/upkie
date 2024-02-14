@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2023 Inria
 # SPDX-License-Identifier: Apache-2.0
+# Copyright 2023 Inria
 
 import argparse
 import datetime
@@ -10,30 +10,24 @@ import os
 import random
 import signal
 import tempfile
-from typing import List
+from typing import Callable, List
 
 import gin
 import gymnasium
+import numpy as np
 import stable_baselines3
-import yaml
-from reward import Reward
+from envs import make_ppo_balancer_env
 from rules_python.python.runfiles import runfiles
-from settings import EnvSettings, PPOSettings
+from settings import EnvSettings, PPOSettings, TrainingSettings
 from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
 from stable_baselines3.common.logger import TensorBoardOutputFormat
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.utils import set_random_seed
-from stable_baselines3.common.vec_env import (
-    DummyVecEnv,
-    SubprocVecEnv,
-    VecNormalize,
-)
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.vec_env.base_vec_env import VecEnv
 from torch import nn
-from utils import gin_operative_config_dict
 
 import upkie.envs
-from upkie.envs import InitRandomization
 from upkie.utils.spdlog import logging
 
 upkie.envs.register()
@@ -68,6 +62,33 @@ def parse_command_line_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+class InitRandomizationCallback(BaseCallback):
+    def __init__(
+        self,
+        vec_env: VecEnv,
+        key: str,
+        max_value: float,
+        start_timestep: int,
+        end_timestep: int,
+    ):
+        super().__init__()
+        self.end_timestep = end_timestep
+        self.key = key
+        self.max_value = max_value
+        self.start_timestep = start_timestep
+        self.vec_env = vec_env
+
+    def _on_step(self) -> bool:
+        progress: float = np.clip(
+            (self.num_timesteps - self.start_timestep) / self.end_timestep,
+            0.0,
+            1.0,
+        )
+        cur_value = progress * self.max_value
+        self.vec_env.env_method("update_init_rand", **{self.key: cur_value})
+        self.logger.record(f"init_rand/{self.key}", cur_value)
+
+
 class SummaryWriterCallback(BaseCallback):
     def __init__(self, vec_env: VecEnv, save_path: str):
         super().__init__()
@@ -87,23 +108,15 @@ class SummaryWriterCallback(BaseCallback):
         # for functions called by the environment are logged as well.
         if self.n_calls != 1:
             return
-        reward = self.vec_env.get_attr("reward")[0]
-        spine_config = self.vec_env.get_attr("spine_config")[0]
-        config = {
-            "env": EnvSettings().env_id,
-            "gin": gin_operative_config_dict(gin.config._OPERATIVE_CONFIG),
-            "reward": reward.__dict__,
-            "spine_config": spine_config,
-        }
         self.tb_formatter.writer.add_text(
-            "config",
-            f"```yaml\n{yaml.dump(config, indent=4)}\n```",
+            "gin/operative_config",
+            gin.operative_config_str(),
             global_step=None,
         )
-        save_path = f"{self.save_path}/config.yaml"
-        with open(save_path, "w") as fh:
-            yaml.dump(config, fh, indent=4)
-        logging.info(f"Saved configuration to {save_path}")
+        gin_path = f"{self.save_path}/operative_config.gin"
+        with open(gin_path, "w") as fh:
+            fh.write(gin.operative_config_str())
+        logging.info(f"Saved gin configuration to {gin_path}")
 
 
 def get_random_word():
@@ -123,9 +136,9 @@ def get_bullet_argv(shm_name: str, show: bool) -> List[str]:
     @param show If true, show simulator GUI.
     @returns Command-line arguments.
     """
-    settings = EnvSettings()
-    agent_frequency = settings.agent_frequency
-    spine_frequency = settings.spine_frequency
+    env_settings = EnvSettings()
+    agent_frequency = env_settings.agent_frequency
+    spine_frequency = env_settings.spine_frequency
     assert spine_frequency % agent_frequency == 0
     nb_substeps = spine_frequency / agent_frequency
     bullet_argv = []
@@ -137,17 +150,20 @@ def get_bullet_argv(shm_name: str, show: bool) -> List[str]:
     return bullet_argv
 
 
-def make_env(
-    spine_path: str,
+def init_env(
+    max_episode_duration: float,
     show: bool,
-    subproc_index: int,
+    spine_path: str,
 ):
-    settings = EnvSettings()
-    seed = (
-        settings.seed + subproc_index
-        if settings.seed is not None
-        else random.randint(0, 1_000_000)
-    )
+    """!
+    Get an environment initialization function for a set of parameters.
+
+    @param max_episode_duration Maximum duration of an episode, in seconds.
+    @param show If true, show simulator GUI.
+    @param spine_path Path to the Bullet spine binary.
+    """
+    env_settings = EnvSettings()
+    seed = random.randint(0, 1_000_000)
 
     def _init():
         shm_name = f"/{get_random_word()}"
@@ -158,40 +174,30 @@ def make_env(
             return
 
         # parent process: trainer
-        agent_frequency = settings.agent_frequency
-        max_episode_duration = settings.max_episode_duration
-        init_rand = InitRandomization(**settings.init_rand)
-        env = gymnasium.make(
-            settings.env_id,
+        agent_frequency = env_settings.agent_frequency
+        velocity_env = gymnasium.make(
+            env_settings.env_id,
             max_episode_steps=int(max_episode_duration * agent_frequency),
-            # upkie.envs.UpkieBaseEnv
             frequency=agent_frequency,
-            init_rand=init_rand,
-            max_ground_accel=settings.max_ground_accel,
-            max_ground_velocity=settings.max_ground_velocity,
             regulate_frequency=False,
-            reward=Reward(),
+            reward_weights=upkie.envs.UpkieGroundVelocity.RewardWeights(
+                **env_settings.reward_weights
+            ),
             shm_name=shm_name,
-            spine_config={
-                "bullet": {
-                    "torque_control": {
-                        "kd": settings.sim_torque_control_kd,
-                    },
-                },
-            },
-            velocity_filter=settings.velocity_filter,
-            velocity_filter_rand=settings.velocity_filter_rand,
+            spine_config=env_settings.spine_config,
+            max_ground_velocity=env_settings.max_ground_velocity,
         )
-        env.reset(seed=seed)
-        env._prepatch_close = env.close
+        velocity_env.reset(seed=seed)
+        velocity_env._prepatch_close = velocity_env.close
 
         def close_monkeypatch():
             logging.info(f"Terminating spine {shm_name} with {pid=}...")
             os.kill(pid, signal.SIGINT)  # interrupt spine child process
             os.waitpid(pid, 0)  # wait for spine to terminate
-            env._prepatch_close()
+            velocity_env._prepatch_close()
 
-        env.close = close_monkeypatch
+        velocity_env.close = close_monkeypatch
+        env = make_ppo_balancer_env(velocity_env, env_settings, training=True)
         return Monitor(env)
 
     set_random_seed(seed)
@@ -206,6 +212,28 @@ def find_save_path(training_dir: str, policy_name: str):
     while os.path.exists(path_for_iter(nb_iter)):
         nb_iter += 1
     return path_for_iter(nb_iter)
+
+
+def affine_schedule(y_0: float, y_1: float) -> Callable[[float], float]:
+    """!
+    Affine schedule as a function over the [0, 1] interval.
+
+    @param y_0 Function value at zero.
+    @param y_1 Function value at one.
+    @return Corresponding affine function.
+    """
+    diff = y_1 - y_0
+
+    def schedule(x: float) -> float:
+        """!
+        Compute the current learning rate from remaining progress.
+
+        @param x Progress decreasing from 1 (beginning) to 0.
+        @return Corresponding learning rate>
+        """
+        return y_0 + x * diff
+
+    return schedule
 
 
 def train_policy(
@@ -228,36 +256,54 @@ def train_policy(
     logging.info('New policy name is "%s"', policy_name)
     logging.info("Training data will be logged to %s", save_path)
 
+    training = TrainingSettings()
     deez_runfiles = runfiles.Create()
     spine_path = os.path.join(
         agent_dir,
-        deez_runfiles.Rlocation("upkie/spines/bullet"),
+        deez_runfiles.Rlocation("upkie/spines/bullet_spine"),
     )
 
     vec_env = (
         SubprocVecEnv(
             [
-                make_env(spine_path, show, subproc_index=i)
+                init_env(
+                    max_episode_duration=training.max_episode_duration,
+                    show=show,
+                    spine_path=spine_path,
+                )
                 for i in range(nb_envs)
             ],
             start_method="fork",
         )
         if nb_envs > 1
-        else DummyVecEnv([make_env(spine_path, show, subproc_index=0)])
+        else DummyVecEnv(
+            [
+                init_env(
+                    max_episode_duration=training.max_episode_duration,
+                    show=show,
+                    spine_path=spine_path,
+                )
+            ]
+        )
     )
-    if False:  # does not always improve returns during training
-        vec_env = VecNormalize(vec_env)
 
-    settings = EnvSettings()
-    agent_frequency = settings.agent_frequency
-    dt = 1.0 / agent_frequency
-    gamma = 1.0 - dt / settings.discounted_horizon_duration
+    env_settings = EnvSettings()
+    dt = 1.0 / env_settings.agent_frequency
+    gamma = 1.0 - dt / training.return_horizon
+    logging.info(
+        "Discount factor gamma=%f for a return horizon of %f s",
+        gamma,
+        training.return_horizon,
+    )
 
     ppo_settings = PPOSettings()
     policy = stable_baselines3.PPO(
         "MlpPolicy",
         vec_env,
-        learning_rate=ppo_settings.learning_rate,
+        learning_rate=affine_schedule(
+            y_1=ppo_settings.learning_rate,  # progress_remaining=1.0
+            y_0=ppo_settings.learning_rate / 3,  # progress_remaining=0.0
+        ),
         n_steps=ppo_settings.n_steps,
         batch_size=ppo_settings.batch_size,
         n_epochs=ppo_settings.n_epochs,
@@ -275,24 +321,45 @@ def train_policy(
         tensorboard_log=training_dir,
         policy_kwargs={
             "activation_fn": nn.Tanh,
-            "net_arch": dict(
-                pi=ppo_settings.net_arch_pi,
-                vf=ppo_settings.net_arch_vf,
-            ),
+            "net_arch": {
+                "pi": ppo_settings.net_arch_pi,
+                "vf": ppo_settings.net_arch_vf,
+            },
         },
         verbose=1,
     )
 
     try:
         policy.learn(
-            total_timesteps=settings.total_timesteps,
+            total_timesteps=training.total_timesteps,
             callback=[
                 CheckpointCallback(
-                    save_freq=max(int(1e5) // nb_envs, 1_000),
+                    save_freq=max(210_000 // nb_envs, 1_000),
                     save_path=save_path,
                     name_prefix="checkpoint",
                 ),
                 SummaryWriterCallback(vec_env, save_path),
+                InitRandomizationCallback(
+                    vec_env,
+                    "pitch",
+                    training.init_rand["pitch"],
+                    start_timestep=0,
+                    end_timestep=1e5,
+                ),
+                InitRandomizationCallback(
+                    vec_env,
+                    "v_x",
+                    training.init_rand["v_x"],
+                    start_timestep=0,
+                    end_timestep=1e5,
+                ),
+                InitRandomizationCallback(
+                    vec_env,
+                    "omega_y",
+                    training.init_rand["omega_y"],
+                    start_timestep=0,
+                    end_timestep=1e5,
+                ),
             ],
             tb_log_name=policy_name,
         )
@@ -307,7 +374,6 @@ def train_policy(
 if __name__ == "__main__":
     args = parse_command_line_arguments()
     agent_dir = os.path.dirname(__file__)
-    gin.parse_config_file(f"{agent_dir}/reward.gin")
     gin.parse_config_file(f"{agent_dir}/settings.gin")
 
     training_path = os.environ.get(

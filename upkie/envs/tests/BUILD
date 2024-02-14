@@ -1,9 +1,8 @@
 # -*- python -*-
 #
-# Copyright 2023 Inria
+# SPDX-License-Identifier: Apache-2.0
 
 load("//tools/lint:lint.bzl", "add_lint_tests")
-load("@pip_upkie//:requirements.bzl", "requirement")
 
 package(default_visibility = ["//visibility:public"])
 

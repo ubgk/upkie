@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2023 Inria
 # SPDX-License-Identifier: Apache-2.0
+# Copyright 2023 Inria
 
 """Wheel balancing using model predictive control with the ProxQP solver."""
 
@@ -17,8 +17,9 @@ import gymnasium as gym
 import numpy as np
 import proxsuite
 import qpsolvers
-from ltv_mpc import MPCQP, Plan, solve_mpc
-from ltv_mpc.systems import CartPole
+from numpy.typing import NDArray
+from qpmpc import MPCQP, Plan, solve_mpc
+from qpmpc.systems import WheeledInvertedPendulum
 from qpsolvers import solve_problem
 
 import upkie.envs
@@ -53,7 +54,7 @@ class ProxQPWorkspace:
         self, mpc_qp: MPCQP, update_preconditioner: bool, verbose: bool
     ):
         n_eq = 0
-        n_in = mpc_qp.h.size // 2  # CartPole structure
+        n_in = mpc_qp.h.size // 2  # WheeledInvertedPendulum structure
         n = mpc_qp.P.shape[1]
         solver = proxsuite.proxqp.dense.QP(
             n,
@@ -69,9 +70,9 @@ class ProxQPWorkspace:
         solver.init(
             H=mpc_qp.P,
             g=mpc_qp.q,
-            C=mpc_qp.G[::2, :],  # CartPole structure
-            l=-mpc_qp.h[1::2],  # CartPole structure
-            u=mpc_qp.h[::2],  # CartPole structure
+            C=mpc_qp.G[::2, :],  # WheeledInvertedPendulum structure
+            l=-mpc_qp.h[1::2],  # WheeledInvertedPendulum structure
+            u=mpc_qp.h[::2],  # WheeledInvertedPendulum structure
         )
         solver.solve()
         self.update_preconditioner = update_preconditioner
@@ -90,7 +91,7 @@ class ProxQPWorkspace:
 
 
 @gin.configurable
-class UpkieCartPole(CartPole):
+class PendularUpkie(WheeledInvertedPendulum):
     def __init__(
         self,
         length: float,
@@ -107,7 +108,7 @@ class UpkieCartPole(CartPole):
 
 
 @gin.configurable
-async def balance(
+def balance(
     env: gym.Env,
     nb_env_steps: int,
     rebuild_qp_every_time: bool,
@@ -121,9 +122,18 @@ async def balance(
     Run proportional balancer in gym environment with logging.
 
     @param env Gym environment to Upkie.
+    @param nb_env_steps Number of environment steps to perform (zero to run
+        indefinitely).
+    @param rebuild_qp_every_time If set, rebuild all QP matrices at every
+        iteration. Otherwise, only update vectors.
+    @param show_live_plot Show a live plot.
+    @param stage_input_cost_weight Weight for the stage input cost.
+    @param stage_state_cost_weight Weight for the stage state cost.
+    @param terminal_cost_weight Weight for the terminal cost.
+    @param warm_start If set, use the warm-starting feature of ProxQP.
     """
-    cart_pole = UpkieCartPole()
-    mpc_problem = cart_pole.build_mpc_problem(
+    pendulum = PendularUpkie()
+    mpc_problem = pendulum.build_mpc_problem(
         terminal_cost_weight=terminal_cost_weight,
         stage_state_cost_weight=stage_state_cost_weight,
         stage_input_cost_weight=stage_input_cost_weight,
@@ -134,9 +144,11 @@ async def balance(
 
     live_plot = None
     if show_live_plot and not on_raspi():
-        from ltv_mpc.live_plots import CartPolePlot  # imports matplotlib
+        from qpmpc.live_plots import (  # imports matplotlib
+            WheeledInvertedPendulumPlot,
+        )
 
-        live_plot = CartPolePlot(cart_pole, order="velocities")
+        live_plot = WheeledInvertedPendulumPlot(pendulum, order="velocities")
 
     env.reset()  # connects to the spine
     commanded_velocity = 0.0
@@ -152,8 +164,8 @@ async def balance(
             observation, info = env.reset()
             commanded_velocity = 0.0
 
-        observation_dict = info["observation"]
-        floor_contact = observation_dict["floor_contact"]["contact"]
+        spine_observation = info["spine_observation"]
+        floor_contact = spine_observation["floor_contact"]["contact"]
 
         # Unpack observation into initial MPC state
         (
@@ -171,8 +183,8 @@ async def balance(
             ]
         )
 
-        nx = CartPole.STATE_DIM
-        target_states = np.zeros((cart_pole.nb_timesteps + 1) * nx)
+        nx = WheeledInvertedPendulum.STATE_DIM
+        target_states = np.zeros((pendulum.nb_timesteps + 1) * nx)
         mpc_problem.update_initial_state(initial_state)
         mpc_problem.update_goal_state(target_states[-nx:])
         mpc_problem.update_target_states(target_states[:-nx])
@@ -202,7 +214,7 @@ async def balance(
             logging.error("Solver found no solution to the MPC problem")
             logging.info("Continuing with previous action")
         else:  # plan was found
-            cart_pole.state = initial_state
+            pendulum.state = initial_state
             if live_plot is not None:
                 t = time.time()
                 live_plot.update(plan, t, initial_state, t)
@@ -224,7 +236,7 @@ async def balance(
     np.save("planning_times.npy", planning_times)
 
 
-def report(mpc_problem, mpc_qp, planning_times: Optional[np.ndarray]):
+def report(mpc_problem, mpc_qp, planning_times: Optional[NDArray[float]]):
     average_ms = 1e3 * np.average(planning_times)
     std_ms = 1e3 * np.std(planning_times)
     nb_env_steps = planning_times.size
@@ -254,5 +266,5 @@ if __name__ == "__main__":
     agent_dir = os.path.dirname(__file__)
     gin.parse_config_file(f"{agent_dir}/config.gin")
     args = parse_command_line_arguments()
-    with gym.make("UpkieGroundVelocity-v1", frequency=200.0) as env:
+    with gym.make("UpkieGroundVelocity-v3", frequency=200.0) as env:
         balance(env, show_live_plot=args.live_plot)

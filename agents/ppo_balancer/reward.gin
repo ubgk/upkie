@@ -1,8 +1,0 @@
-# -*- python -*-
-#
-# Copyright 2023 Inria
-# SPDX-License-Identifier: Apache-2.0
-
-import reward
-
-Reward.acceleration_penalty_weight = 1.0

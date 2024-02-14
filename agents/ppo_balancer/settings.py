@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Copyright 2023 Inria
 # SPDX-License-Identifier: Apache-2.0
+# Copyright 2023 Inria
 
 from dataclasses import dataclass
-from typing import Optional, Tuple, Dict
+from typing import List, Optional, Tuple
 
 import gin
 
@@ -17,19 +17,18 @@ class EnvSettings:
     Environment settings.
     """
 
+    accel_penalty: float
+    action_lpf: Tuple[float, float]
+    action_noise: List[float]
     agent_frequency: int
-    discounted_horizon_duration: float
     env_id: str
-    init_rand: Dict[str, float]
-    max_episode_duration: float
+    history_size: int
     max_ground_accel: float
     max_ground_velocity: float
-    seed: Optional[int]
-    sim_torque_control_kd: float
+    observation_noise: List[float]
+    reward_weights: dict
+    spine_config: dict
     spine_frequency: int
-    total_timesteps: int
-    velocity_filter: Optional[float]
-    velocity_filter_rand: Optional[Tuple[float, float]]
 
 
 @gin.configurable
@@ -53,3 +52,14 @@ class PPOSettings:
     target_kl: Optional[float]
     use_sde: bool
     vf_coef: float
+
+
+@gin.configurable
+@dataclass
+class TrainingSettings:
+    """Training settings."""
+
+    init_rand: dict
+    max_episode_duration: float
+    return_horizon: float
+    total_timesteps: int

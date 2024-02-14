@@ -2,38 +2,137 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- MPC balancer: add classes and functions to the documentation
+- PID balancer: add classes and functions to the documentation
+- PPO balancer: add classes and functions to the documentation
+- Robot state class to describe initial state distributions
+- spines: `bullet_spine` accepts extra URDFs as arguments
+
+### Changed
+
+- Code style: ignore E266 as Doxygen uses ## to document class attributes
+- dependencies: Bump Vulp to 2.1.0
+- envs: Default velocity in `UpkieServos` is now zero
+- envs: Observation and action values are `float` rather than `np.float32`
+- envs: Specify maximum torques in `UpkieGroundVelocity`
+- whoopsies: Rename ``try_pid_balancer.sh`` to ``start_pid_balancer.sh`` 😊
+
+### Fixed
+
+- MPC balancer: add missing dependencies to requirements.txt
+- PPO balancer: add missing initial state randomization to ``--training`` mode
+- envs: typo in `UpkieServos` dictionary key
+
+### Removed
+
+- Bazel: dependencies based on ``pip_parse`` from ``rules_python``
+- Pink balancer: moved to a separate repository
+
+## [3.1.0] - 2023-12-22
+
+### Added
+
+- envs: Take feedforward torque commands into account in `UpkieServos`
+- examples: Wheeled balancing with wheel torque control
+- utils: ActionError exception
+- utils: ModelError exception
+
+### Changed
+
+- Rename ``start_pid_balancer.sh`` to ``try_pid_balancer.sh``
+- envs: Make parsing of first observation optional for non-base environments
+- envs: Rename info key to `"spine_observation"` in all environments
+- envs: Switch `UpkieServos` env to dictionary action and observation
+
+## [3.0.0] - 2023-12-01
+
+### Added
+
+- PPO balancer: Convenience Makefile to manage the training directory
+- docs: Agents and Environments pages
+- envs: Log action, observation and reward to "env" sub-dict of action
+- envs: New `upkie.envs.wrappers` submodule
+- envs: Wrapper to act on the discrete-derivative of an action
+- envs: Wrapper to add the action to the observation vector
+- envs: Wrapper to low-pass filter action (modeling a delay)
+- envs: Wrapper to noisify actions
+- envs: Wrapper to noisify observations
+- logs: Convenience Makefile for log synchronization
+- spines: Label pi3hat spine log filenames with the robot's hostname
+
+### Changed
+
+- **Breaking:** Rename the "wheel" balancer agent to "PID balancer"
+- **Breaking:** envs: Rewards are now part of individual environments
+- **Breaking:** envs: ``info`` dictionary does not repeat "action" any more
+- MPC balancer: Update height of control point to 58 cm
+- PPO balancer: Update height of control point to 58 cm
+- dependencies: Bump Gymnasium to 0.29.1
+- dependencies: Bump loop-rate-limiters to 0.6.1
+- dependencies: Bump NumPy to 1.24.3
+- dependencies: Bump Vulp to 2.0.0
+- envs: Bump `UpkieGroundVelocity` to version 3
+- envs: Legs now return to their neutral configuration in `UpkieGroundVelocity`
+- envs: ``rate`` attribute from base environment is now internal
+- examples: Refactor lying genuflections
+- examples: Refactor wheeled balancing
+
+### Removed
+
+- docs: Code overview page, split into Agents, Environments and Observations
+- envs: Acceleration filter from `UpkieGroundVelocity` (=> gymnasium.Wrapper)
+- envs: Intermediate `UpkieWheeledPendulum` environment
+- envs: Low-pass filter from `UpkieGroundVelocity` (=> gymnasium.Wrapper)
+- envs: Survival reward, as environments now ship their own rewards
+
+## [2.0.0] - 2023-10-26
 
 ### Added
 
 - PPO balancer: Allow custom training path
 - PPO balancer: Allow re-training with the same policy name
 - PPO balancer: Low-pass filter action before acceleration clamping
+- PPO balancer: Update reward to penalize commanded accelerations
+- UpkieGroundVelocity: Augment observation with previous command
 - agents: Closed-loop model predictive control
 - envs: Allow custom initial base velocity in Bullet config
 - examples: Closed-loop model predictive control
+- spines: Build and export the pi3hat spine binary in continuous integration (thanks to @pgraverdy)
+- spines: ``--version`` flag for all spine binaries
 
 ### Changed
 
-- **Breaking:** envs: Remove ``async_step`` function and ``asyncio`` logic
 - MPC balancer: Remove ``asyncio`` logic
 - PPO balancer: Remove ``asyncio`` logic
 - Pink balancer: Remove ``asyncio`` logic
 - Wheel balancer: Remove ``asyncio`` logic
 - envs: Move reset state sampling to `InitRandomization` class
+- spines: Add `_spine` suffix to binary names, e.g. `pi3hat_spine`
 - spines: Allow pi3hat spine to run without joystick if user validates
 
 ### Fixed
 
+- Make Makefile date command more portable (thanks to @boragokbakan)
 - PPO balancer: Correct save frequency during training
 - PPO balancer: Run policy deterministically after training
 - envs: Merge default and runtime configuration dictionaries
 
 ### Removed
 
-- ``upkie.utils.log_path`` submodule and its utility function
+- **Breaking:** ``async_step`` function and ``asyncio`` logic
+- **Breaking:** ``pi32_config`` as 64-bit is the new default
+- **Breaking:** ``upkie.utils.log_path`` submodule and its utility function
+- Dependency on mpacklog.cpp (already in Vulp)
+- Dependency on mpacklog.py
 
-## [1.5.0] - 2023/09/29
+## [1.5.0] - 2023-09-29
 
 ### Added
 
@@ -59,7 +158,6 @@ All notable changes to this project will be documented in this file.
 - PPO balancer: Change training directory to `/tmp/ppo_balancer`
 - PPO balancer: Policy CLI argument becomes positional and optional
 - PPO balancer: Refactor agent settings
-- PPO balancer: Rename `effective_time_horizon` to `discounted_horizon_duration`
 - agents: Retry connecting to the spine several times at startup
 - envs: Retry connecting to the spine several times at startup
 
@@ -72,7 +170,7 @@ All notable changes to this project will be documented in this file.
 
 - envs: Remove `get_range` from rewards as it is deprecated from Gymnasium
 
-## [1.4.0] - 2023/08/24
+## [1.4.0] - 2023-08-24
 
 ### Added
 
@@ -105,7 +203,7 @@ All notable changes to this project will be documented in this file.
 - observers: Check whether floor contact observer is initialized properly
 - tools: Fix permissions of `vcgencheck`
 
-## [1.3.4] - 2023/08/09
+## [1.3.4] - 2023-08-09
 
 ### Added
 
@@ -122,27 +220,27 @@ All notable changes to this project will be documented in this file.
 - envs: Export ``register`` from submodule
 - envs: Overlay constructor spine configuration on top of default config
 
-## [1.3.3] - 2023/08/07
+## [1.3.3] - 2023-08-07
 
 ### Changed
 
 - PyPI: Bump scipy dependency from 1.8.0 to 1.10.0
 - envs: Skip environment registration upon missing dependency
 
-## [1.3.2] - 2023/08/07
+## [1.3.2] - 2023-08-07
 
 ### Fixed
 
 - config: Distribute missing ``config`` submodule in PyPI package
 
-## [1.3.1] - 2023/07/28
+## [1.3.1] - 2023-07-28
 
 ### Fixed
 
 - config: Add missing ``config`` submodule to PyPI
 - Fix source code distribution of PyPI package
 
-## [1.3.0] - 2023/07/26
+## [1.3.0] - 2023-07-26
 
 ### Added
 
@@ -163,13 +261,13 @@ All notable changes to this project will be documented in this file.
 - PPO balancer: Fix time-limit import
 - envs: Add ``dt`` attribute to the base environment
 
-## [1.2.1] - 2023/07/18
+## [1.2.1] - 2023-07-18
 
 ### Changed
 
 - envs: Bump UpkieWheelsEnv version number to 4
 
-## [1.2.0] - 2023/07/18
+## [1.2.0] - 2023-07-18
 
 ### Added
 
@@ -186,7 +284,7 @@ All notable changes to this project will be documented in this file.
 - build: Only run lint tests when ``--config lint`` is supplied
 - envs: Make sure vectorized observations are float32
 
-## [1.1.0] - 2023/07/07
+## [1.1.0] - 2023-07-07
 
 ### Added
 
@@ -209,7 +307,7 @@ All notable changes to this project will be documented in this file.
 - workspace: Update Vulp for IMU frame simulation fix
 - workspace: Update ``upkie_description`` for IMU orientation fix
 
-## [1.0.0] - 2023/06/12
+## [1.0.0] - 2023-06-12
 
 ### Added
 
@@ -225,7 +323,7 @@ All notable changes to this project will be documented in this file.
 - Rename main repository and project to just "upkie"
 - Update Vulp to v1.2.0
 
-## [0.5.0] - 2023/06/05
+## [0.5.0] - 2023-06-05
 
 ### Added
 
@@ -252,7 +350,7 @@ All notable changes to this project will be documented in this file.
 - PPO balancer: simplify training
 - Pink balancer: default frequency is 200 Hz
 
-## [0.4.0] - 2023/04/06
+## [0.4.0] - 2023-04-06
 
 ### Added
 
@@ -273,13 +371,13 @@ All notable changes to this project will be documented in this file.
 - Pink balancer: reduce LM damping to fix stalling when crouching
 - PPO balancer: get environment id (thanks @Varun-GP)
 
-## [0.3.1] - 2023/03/15
+## [0.3.1] - 2023-03-15
 
 ### Added
 
 - UpkieWheelsEnv: return action and observation dicts in ``info``
 
-## [0.3.0] - 2023/03/13
+## [0.3.0] - 2023-03-13
 
 ### Added
 
@@ -291,7 +389,7 @@ All notable changes to this project will be documented in this file.
 
 - UpkieWheelsEnv: remove dependency on gin
 
-## [0.2.0] - 2023/03/03
+## [0.2.0] - 2023-03-03
 
 ### Added
 
@@ -309,6 +407,28 @@ All notable changes to this project will be documented in this file.
 - Document both C++ and Python code with Doxygen
 - Python requirements and dependencies in Bazel
 
-## [0.1.0] - 2022/09/12
+## [0.1.0] - 2022-09-12
 
 Starting this changelog.
+
+[unreleased]: https://github.com/upkie/upkie/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/upkie/upkie/compare/v3.0.0...v3.1.0
+[3.0.0]: https://github.com/upkie/upkie/compare/v2.0.0...v3.0.0
+[2.0.0]: https://github.com/upkie/upkie/compare/v1.5.0...v2.0.0
+[1.5.0]: https://github.com/upkie/upkie/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/upkie/upkie/compare/v1.3.4...v1.4.0
+[1.3.4]: https://github.com/upkie/upkie/compare/v1.3.3...v1.3.4
+[1.3.3]: https://github.com/upkie/upkie/compare/v1.3.2...v1.3.3
+[1.3.2]: https://github.com/upkie/upkie/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/upkie/upkie/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/upkie/upkie/compare/v1.2.1...v1.3.0
+[1.2.1]: https://github.com/upkie/upkie/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/upkie/upkie/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/upkie/upkie/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/upkie/upkie/compare/v0.5.0...v1.0.0
+[0.5.0]: https://github.com/upkie/upkie/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/upkie/upkie/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/upkie/upkie/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/upkie/upkie/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/upkie/upkie/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/upkie/upkie/releases/tag/v0.1.0

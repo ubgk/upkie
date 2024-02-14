@@ -1,22 +1,8 @@
 # Makefile for upkie targets
 #
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2022 Stéphane Caron
-# Copyright 2023 Inria
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# NB: this Makefile is for Raspberry Pi targets only. Use Bazel or Bazelisk to
-# build targets on your computer.
+# Copyright 2023-2024 Inria
 
 # Hostname or IP address of the Raspberry Pi Uses the value from the UPKIE_NAME
 # environment variable, if defined. Valid usage: ``make upload UPKIE_NAME=foo``
@@ -54,10 +40,11 @@ clean: clean_broken_links  ## clean all local build and intermediate files
 
 .PHONY: build
 build: clean_broken_links  ## build Raspberry Pi targets
-	$(BAZEL) build --config=pi64 //agents/ppo_balancer
-	$(BAZEL) build --config=pi64 //agents/wheel_balancer
-	$(BAZEL) build --config=pi64 //spines:mock
-	$(BAZEL) build --config=pi64 //spines:pi3hat
+	$(BAZEL) build --config=pi64 //agents/mpc_balancer
+	$(BAZEL) build --config=pi64 //agents/pid_balancer
+	$(BAZEL) build --config=pi64 //agents/ppo_balancer:run
+	$(BAZEL) build --config=pi64 //spines:mock_spine
+	$(BAZEL) build --config=pi64 //spines:pi3hat_spine
 
 .PHONY: coverage
 coverage:  ## check unit test coverage and open an HTML report in Firefox
@@ -65,8 +52,8 @@ coverage:  ## check unit test coverage and open an HTML report in Firefox
 	genhtml $(COVERAGE_DIR)/_coverage_report.dat -o $(COVERAGE_DIR)
 	firefox $(COVERAGE_DIR)/index.html
 
-.PHONY: check_robot
-check_robot:
+.PHONY: check_upkie_name
+check_upkie_name:
 	@ if [ -z "${UPKIE_NAME}" ]; then \
 		echo "ERROR: Environment variable UPKIE_NAME is not set.\n"; \
 		echo "This variable should contain the robot's hostname or IP address for SSH. "; \
@@ -80,31 +67,37 @@ check_robot:
 # Running ``raspunzel -s`` can create __pycache__ directories owned by root
 # that rsync is not allowed to remove. We therefore give permissions first.
 .PHONY: upload
-upload: check_robot build  ## upload built targets to the Raspberry Pi
+upload: check_upkie_name build  ## upload built targets to the Raspberry Pi
 	ssh $(REMOTE) sudo date -s "$(CURDATE)"
 	ssh $(REMOTE) mkdir -p $(PROJECT_NAME)
 	ssh $(REMOTE) sudo find $(PROJECT_NAME) -type d -name __pycache__ -user root -exec chmod go+wx {} "\;"
-	rsync -Lrtu --delete-after --delete-excluded --exclude bazel-out/ --exclude bazel-testlogs/ --exclude bazel-$(CURDIR_NAME) --exclude bazel-$(PROJECT_NAME)/ --exclude logs/ --progress $(CURDIR)/ $(REMOTE):$(PROJECT_NAME)/
+	rsync -Lrtu --delete-after --delete-excluded --exclude bazel-out/ --exclude bazel-testlogs/ --exclude bazel-$(CURDIR_NAME) --exclude bazel-$(PROJECT_NAME)/ --exclude logs/ --exclude training/ --progress $(CURDIR)/ $(REMOTE):$(PROJECT_NAME)/
 
-# REMOTE TARGETS
-# ==============
+# REMOTE SPINE TARGETS
+# ====================
 
 run_mock_spine:  ### run the mock spine on the Raspberry Pi
-	$(RASPUNZEL) run -s //spines:mock
+	$(RASPUNZEL) run -s //spines:mock_spine
 
 # NB: run_pi3hat_spine is used in build instructions
 run_pi3hat_spine:  ### run the pi3hat spine on the Raspberry Pi
-	$(RASPUNZEL) run -s //spines:pi3hat
+	$(RASPUNZEL) run -s //spines:pi3hat_spine
 
-run_ppo_balancer:  ### run the test balancer on the Raspberry Pi
-	$(RASPUNZEL) run -s //agents/ppo_balancer:ppo_balancer
+# REMOTE AGENT TARGETS
+# ====================
+
+run_mpc_balancer:  ### run the MPC balancer on the Raspberry Pi
+	$(RASPUNZEL) run -s //agents/mpc_balancer:mpc_balancer
 
 # A specific gain config file can be loaded with the CONFIG variable
-# Example: ``make run_wheel_balancer CONFIG=michel-strogoff``
-# where michel-strogoff.gin is a file in agents/wheel_balancer/config/
+# Example: ``make run_pid_balancer CONFIG=michel-strogoff``
+# where michel-strogoff.gin is a file in agents/pid_balancer/config/
 # By default we detect the config file to load by running `hostname`.
-WHEEL_BALANCER_CONFIG = $(or ${CONFIG}, hostname)
+PID_BALANCER_CONFIG = $(or ${CONFIG}, hostname)
 
-# NB: run_wheel_balancer is used in build instructions
-run_wheel_balancer:  ### run the test balancer on the Raspberry Pi
-	$(RASPUNZEL) run -s //agents/wheel_balancer:wheel_balancer -- --config $(WHEEL_BALANCER_CONFIG)
+# NB: run_pid_balancer is used in build instructions
+run_pid_balancer:  ### run the test balancer on the Raspberry Pi
+	$(RASPUNZEL) run -s //agents/pid_balancer:pid_balancer -- --config $(PID_BALANCER_CONFIG)
+
+run_ppo_balancer:  ### run the PPO balancer on the Raspberry Pi
+	$(RASPUNZEL) run -s //agents/ppo_balancer:run

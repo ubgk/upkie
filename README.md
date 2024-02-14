@@ -1,94 +1,43 @@
 # Upkie wheeled biped robot
 
-[![CI](https://github.com/tasts-robots/upkie/actions/workflows/bazel.yml/badge.svg)](https://github.com/tasts-robots/upkie/actions/workflows/bazel.yml)
-[![Build instructions](https://img.shields.io/badge/build-instructions-brightgreen?logo=read-the-docs&style=flat)](https://github.com/tasts-robots/upkie/wiki)
-[![Documentation](https://img.shields.io/badge/docs-online-brightgreen?style=flat)](https://tasts-robots.github.io/upkie/)
-[![Coverage](https://coveralls.io/repos/github/tasts-robots/upkie/badge.svg?branch=main)](https://coveralls.io/github/tasts-robots/upkie?branch=main)
+[![CI](https://github.com/upkie/upkie/actions/workflows/bazel.yml/badge.svg)](https://github.com/upkie/upkie/actions/workflows/bazel.yml)
+[![Build instructions](https://img.shields.io/badge/build-instructions-brightgreen?logo=read-the-docs&style=flat)](https://github.com/upkie/upkie/wiki)
+[![Documentation](https://img.shields.io/badge/docs-online-brightgreen?logo=read-the-docs&style=flat)](https://upkie.github.io/upkie/)
+[![Coverage](https://coveralls.io/repos/github/upkie/upkie/badge.svg?branch=main)](https://coveralls.io/github/upkie/upkie?branch=main)
 [![PyPI version](https://img.shields.io/pypi/v/upkie)](https://pypi.org/project/upkie/)
 [![Chat](https://img.shields.io/badge/matrix-chat-%234eb899)](https://app.element.io/#/room/#tasts-robots:matrix.org)
 
-Build instructions and software for **Upkie** wheeled bipeds. Develop on Linux 🐧 or macOS 🍏, deploy to the robot's Raspberry Pi 🍓. Questions are welcome in the [Discussions](https://github.com/tasts-robots/upkie/discussions) forum or on the [Chat](https://app.element.io/#/room/#tasts-robots:matrix.org).
+**Upkie** is a fully open source self-balancing wheeled biped robot. It has wheels for balancing, and legs to go off-road or negotiate uneven terrains. Upkies are designed to be buildable at home with tools and components ordered online, like mjbots actuators. Motion control runs onboard the robot's Raspberry Pi.
 
-## Quick sim
+This repository contains all the software and instructions required to build and operate an Upkie. Development can be done in Python or C++, on Linux or macOS. Questions are welcome in the [Chat](https://app.element.io/#/room/#tasts-robots:matrix.org) and [Discussions forum](https://github.com/upkie/upkie/discussions).
 
-If you have Python and a C++ compiler (setup one-liners: [Fedora](https://github.com/tasts-robots/upkie/discussions/100), [Ubuntu](https://github.com/tasts-robots/upkie/discussions/101)), you can run an Upkie simulation right from the command line. It won't install anything on your machine, as everything will run locally from the repository:
+## Installation
 
-<img src="https://user-images.githubusercontent.com/1189580/170496331-e1293dd3-b50c-40ee-9c2e-f75f3096ebd8.png" height="100" align="right" />
-
-```console
-git clone https://github.com/tasts-robots/upkie.git
-cd upkie
-./start_wheel_balancer.sh
-```
-
-Click on the robot in the simulator window to apply external forces 😉
-
-## Getting started
-
-1. [Build an Upkie](https://github.com/tasts-robots/upkie/wiki) or [run a simulation](https://github.com/tasts-robots/upkie#simulation-spine)
-2. [Run an existing agent](https://github.com/tasts-robots/upkie#running-a-python-agent)
-3. [Develop your own agent](https://github.com/tasts-robots/upkie#example-of-a-custom-agent)
-
-## Running a spine
-
-Upkie's code is organized into *spines*, which communicate with the simulation or mjbots actuators, and *agents*, the programs that implement robot behaviors. We use [Bazel](https://bazel.build/) to build spines, both for simulation on your development computer or for running on the robot's Raspberry Pi. Bazel does not install anything on your system: it fetches dependencies with specific versions and builds them locally, making sure the code stays consistent over time. Check out [this introduction](https://github.com/tasts-robots/vulp#readme) for more details.
-
-### Simulation spine
-
-In the example above we ran an agent called "wheel balancer". We could also start the simulation spine independently, and let it run waiting for agents to connect:
-
-```console
-./start_simulation.sh
-```
-
-This script is just an alias for a Bazel ``run`` command:
-
-```console
-./tools/bazelisk run -c opt //spines:bullet -- --show
-```
-
-The ``-c opt`` flag selects the optimized compilation mode. It is actually the default in this project, we just show it here for example.
-
-### Robot spine
-
-To run a spine on the robot, we first build it locally and upload it to the onboard Raspberry Pi:
-
-```console
-make build
-make upload UPKIE_NAME=your_upkie
-```
-
-Next, log into the Pi and run a pi3hat spine:
-
-```console
-$ ssh foo@robot
-foo@robot:~$ cd upkie
-foo@robot:upkie$ make run_pi3hat_spine
-```
-
-Once the spine is running, you can run any agent in a separate shell on the robot, for example the wheel balancer:
-
-```console
-foo@robot:upkie$ make run_wheel_balancer
-```
-
-## Running a Python agent
-
-We develop Python agents using the ``upkie`` interface distributed on PyPI. This interface is already [fast enough](https://github.com/tasts-robots/vulp#performance) for real-time control. To install it:
+Everything needed to develop for Upkie in Python lies in a single package:
 
 ```console
 pip install upkie
 ```
 
-The repository ships a number of [agents](#agents) that have been tested on several Upkie's. You will find them in the [`agents/`](https://github.com/tasts-robots/upkie/tree/main/agents) directory. To run an agent, call its main Python script. For instance, to run the PPO balancer:
+Yes, it's as simple as that. This Python interface is already [fast enough](https://github.com/upkie/vulp#performance) for real-time control. If later on you want to optimize parts of your code, you can move them to C++ [spines](https://upkie.github.io/upkie/spines.html).
+
+## Simulation
+
+Assuming you have a C++ compiler (setup one-liners: [Fedora](https://github.com/upkie/upkie/discussions/100), [Ubuntu](https://github.com/upkie/upkie/discussions/101)), you can run an Upkie simulation right from the command line. It won't install anything on your machine, everything will run locally from the repository:
+
+<img src="https://user-images.githubusercontent.com/1189580/170496331-e1293dd3-b50c-40ee-9c2e-f75f3096ebd8.png" height="100" align="right" />
 
 ```console
-python agents/ppo_balancer/main.py
+git clone https://github.com/upkie/upkie.git
+cd upkie
+./start_pid_balancer.sh
 ```
 
-## Example of a custom agent
+Click on the robot in the simulator window to apply external forces.
 
-You can develop your own agent using the [environments](#environments) distributed in ``upkie.envs``. For example, [run a spine](#running-a-spine) and try executing the following code in a Python interpreter:
+## Example
+
+You can develop your own agent using the Gymnasium environments distributed in ``upkie.envs``. For example, here is a simple proportional-feedback balancer:
 
 ```python
 import gymnasium as gym
@@ -96,7 +45,7 @@ import upkie.envs
 
 upkie.envs.register()
 
-with gym.make("UpkieGroundVelocity-v1", frequency=200.0) as env:
+with gym.make("UpkieGroundVelocity-v3", frequency=200.0) as env:
     observation = env.reset()
     action = 0.0 * env.action_space.sample()
     for step in range(1_000_000):
@@ -107,4 +56,13 @@ with gym.make("UpkieGroundVelocity-v1", frequency=200.0) as env:
         action[0] = 10.0 * pitch
 ```
 
-With a simulation spine, this code will reset the robot's state and execute the policy continuously. In a pi3hat spine, this code will control the robot directly. You can check out the [`examples/`](https://github.com/tasts-robots/upkie/tree/main/examples) directory for more examples.
+To test this agent on your computer, run the agent and simulation spine in two separate processes: `python this_agent.py` in one shell, and `./start_simulation.sh` in the other.
+
+To run this agent on the robot, `scp` the script to the Raspberry Pi, start a [pi3hat spine](https://upkie.github.io/upkie/spines.html#pi3hat-spine) and execute the script on the Pi itself.
+
+## To go further
+
+- [Build your own Upkie](https://github.com/upkie/upkie/wiki) 🧰
+- [Documentation](https://upkie.github.io/upkie/)
+- [More examples](https://github.com/upkie/upkie/tree/main/examples)
+- [Project log on Hackaday.io](https://hackaday.io/project/185729-upkie-wheeled-biped-robots)

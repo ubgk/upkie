@@ -1,19 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2023 Inria
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 """Test UpkieBaseEnv."""
 
@@ -21,20 +10,42 @@ import unittest
 
 import numpy as np
 import posix_ipc
+from gymnasium import spaces
+from numpy.typing import NDArray
 
-from upkie.envs import Reward, UpkieBaseEnv
+from upkie.envs import UpkieBaseEnv
 from upkie.envs.tests.mock_spine import MockSpine
 
 
-class UpkieBaseChild(UpkieBaseEnv):
-    def parse_first_observation(self, observation_dict: dict) -> None:
+class UpkieTestEnv(UpkieBaseEnv):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.observation_space = spaces.Box(
+            -1.0,
+            +1.0,
+            shape=(1,),
+            dtype=np.float32,
+        )
+        self.action_space = spaces.Box(
+            -1.0,
+            1.0,
+            shape=(1,),
+            dtype=np.float32,
+        )
+
+    def parse_first_observation(self, spine_observation: dict) -> None:
         pass
 
-    def vectorize_observation(self, observation_dict: dict) -> np.ndarray:
-        return np.empty(42)
+    def get_env_observation(self, spine_observation: dict) -> NDArray[float]:
+        return np.full((1,), 0.5, dtype=self.observation_space.dtype)
 
-    def dictionarize_action(self, action: np.ndarray) -> dict:
-        return {}
+    def get_spine_action(self, action: NDArray[float]) -> dict:
+        return {"test": action}
+
+    def get_reward(
+        self, observation: NDArray[float], action: NDArray[float]
+    ) -> float:
+        return 1.0
 
 
 class TestUpkieBaseEnv(unittest.TestCase):
@@ -43,8 +54,7 @@ class TestUpkieBaseEnv(unittest.TestCase):
         shared_memory = posix_ipc.SharedMemory(
             shm_name, posix_ipc.O_RDWR | posix_ipc.O_CREAT, size=42
         )
-        self.env = UpkieBaseChild(
-            reward=Reward(),
+        self.env = UpkieTestEnv(
             fall_pitch=1.0,
             frequency=100.0,
             shm_name=shm_name,
@@ -55,8 +65,8 @@ class TestUpkieBaseEnv(unittest.TestCase):
 
     def test_reset(self):
         _, info = self.env.reset()
-        observation_dict = info["observation"]
-        self.assertGreaterEqual(observation_dict["number"], 1)
+        spine_observation = info["spine_observation"]
+        self.assertGreaterEqual(spine_observation["number"], 1)
 
     def test_spine_config(self):
         """Check that runtime and default configs are merged properly."""
@@ -64,18 +74,24 @@ class TestUpkieBaseEnv(unittest.TestCase):
         shared_memory = posix_ipc.SharedMemory(
             shm_name, posix_ipc.O_RDWR | posix_ipc.O_CREAT, size=42
         )
-        env = UpkieBaseChild(
-            reward=Reward(),
+        env = UpkieTestEnv(
             fall_pitch=1.0,
             frequency=100.0,
             shm_name=shm_name,
             spine_config={"some_value": 12, "bullet": {"gui": False}},
         )
         shared_memory.close_fd()
-        self.assertEqual(env.spine_config["some_value"], 12)
-        self.assertEqual(env.spine_config["some_value"], 12)
-        self.assertEqual(env.spine_config["bullet"]["control_mode"], "torque")
-        self.assertEqual(env.spine_config["bullet"]["gui"], False)
+        self.assertEqual(env._spine_config["some_value"], 12)
+        self.assertEqual(env._spine_config["some_value"], 12)
+        self.assertEqual(env._spine_config["bullet"]["gui"], False)
+
+    def test_check_env(self):
+        try:
+            from stable_baselines3.common.env_checker import check_env
+
+            check_env(self.env)
+        except ImportError:
+            pass
 
 
 if __name__ == "__main__":

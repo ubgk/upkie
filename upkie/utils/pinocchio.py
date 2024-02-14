@@ -1,27 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2023 Inria
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 
 from typing import Tuple
 
 import numpy as np
 import pinocchio as pin
+from numpy.typing import NDArray
 
 
-def box_position_limits(model: pin.Model) -> Tuple[np.ndarray, np.ndarray]:
+def box_position_limits(
+    model: pin.Model,
+) -> Tuple[NDArray[float], NDArray[float]]:
     r"""!
     Compute position limits in box format:
 
@@ -44,7 +36,9 @@ def box_position_limits(model: pin.Model) -> Tuple[np.ndarray, np.ndarray]:
     return q_min, q_max
 
 
-def box_velocity_limits(model: pin.Model) -> Tuple[np.ndarray, np.ndarray]:
+def box_velocity_limits(
+    model: pin.Model,
+) -> Tuple[NDArray[float], NDArray[float]]:
     r"""!
     Compute velocity limits in box format:
 
@@ -65,7 +59,9 @@ def box_velocity_limits(model: pin.Model) -> Tuple[np.ndarray, np.ndarray]:
     return v_max
 
 
-def box_torque_limits(model: pin.Model) -> Tuple[np.ndarray, np.ndarray]:
+def box_torque_limits(
+    model: pin.Model,
+) -> Tuple[NDArray[float], NDArray[float]]:
     r"""!
     Compute velocity limits in box format:
 

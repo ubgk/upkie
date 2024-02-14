@@ -1,6 +1,6 @@
 # -*- python -*-
 #
-# Copyright 2022 Stéphane Caron
+# SPDX-License-Identifier: Apache-2.0
 
 package(default_visibility = ["//visibility:public"])
 
@@ -17,13 +17,6 @@ config_setting(
 config_setting(
     name = "osx",
     constraint_values = ["@platforms//os:osx"],
-)
-
-config_setting(
-    name = "pi32_config",
-    values = {
-        "cpu": "armeabihf",
-    }
 )
 
 config_setting(
