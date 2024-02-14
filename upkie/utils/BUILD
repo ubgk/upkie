@@ -20,6 +20,17 @@ py_library(
 )
 
 py_library(
+    name = "contact_models",
+    srcs = ["contact_models.py"],
+    deps = [
+        ":spdlog",
+    ],
+    data = [
+        ":artifacts",
+    ],
+)
+
+py_library(
     name = "exceptions",
     srcs = ["exceptions.py"],
 )
@@ -74,6 +85,7 @@ py_library(
     name = "python",
     deps = [
         ":clamp",
+        ":contact_models",
         ":exceptions",
         ":filters",
         ":nested_update",

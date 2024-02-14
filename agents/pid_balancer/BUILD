@@ -1,8 +1,10 @@
 # -*- python -*-
 #
+# Copyright 2022 Stéphane Caron
 # SPDX-License-Identifier: Apache-2.0
 
 load("//tools/lint:lint.bzl", "add_lint_tests")
+load("@pip_upkie//:requirements.bzl", "requirement")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,6 +18,7 @@ py_library(
         "//upkie/observers/base_pitch",
         "//upkie/utils:clamp",
         "//upkie/utils:filters",
+        requirement("gin-config"),
     ],
 )
 
@@ -30,18 +33,20 @@ py_binary(
 
     data = [
         ":config",
-        "//spines:bullet_spine",
+        "//spines:bullet",
     ],
     deps = [
         "//upkie/utils:exceptions",
         ":controllers",
         "@rules_python//python/runfiles",
         "@vulp//:python",
+        requirement("loop_rate_limiters"),
+        requirement("pyyaml"),
     ],
 )
 
 py_binary(
-    name = "pid_balancer",
+    name = "wheel_balancer",
     srcs = ["main.py"],
     main = "main.py",
 
@@ -50,9 +55,10 @@ py_binary(
     imports = ["."],
 
     data = [
-        "//agents/pid_balancer/config",
+        "//agents/wheel_balancer/config",
     ] + select({
-        "//:pi64_config": ["//spines:pi3hat_spine"],
+        "//:pi32_config": ["//spines:pi3hat"],
+        "//:pi64_config": ["//spines:pi3hat"],
         "//conditions:default": [],
     }),
     deps = [
@@ -61,6 +67,9 @@ py_binary(
         "//upkie/utils:spdlog",
         ":controllers",
         "@vulp//:python",
+        requirement("loop_rate_limiters"),
+        requirement("mpacklog"),
+        requirement("pyyaml"),
     ],
 )
 

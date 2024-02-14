@@ -19,6 +19,8 @@ from rules_python.python.runfiles import runfiles
 from servo_controller import ServoController
 from vulp.spine import SpineInterface
 
+import cProfile
+import pstats
 
 class CompilationModeError(Exception):
     """Raised when the example is called with unexpected parameters."""
@@ -109,7 +111,7 @@ if __name__ == "__main__":
         spine = None
         try:
             spine = SpineInterface(retries=10)
-            run(spine, config)
+            cProfile.run("run(spine, config)")
         except KeyboardInterrupt:
             logging.info("Caught a keyboard interrupt")
         except Exception:

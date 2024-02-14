@@ -5,6 +5,17 @@
 # Copyright 2022 Stéphane Caron
 # Copyright 2023 Inria
 
+import os
+# Check if MSGPACK_PUREPYTHON environment variable is set
+if os.environ.get("MSGPACK_PUREPYTHON") is None:
+    print("MSGPACK_PUREPYTHON environment variable is not set")
+else:
+    print("MSGPACK_PUREPYTHON environment variable is already set to 1")
+
+import msgpack
+print("msgpack imported successfully", msgpack, msgpack.Unpacker)
+    
+
 import argparse
 import socket
 import traceback
@@ -19,6 +30,9 @@ from vulp.spine import SpineInterface
 from upkie.utils.raspi import configure_agent_process, on_raspi
 from upkie.utils.spdlog import logging
 
+import time
+
+import cProfile
 
 def parse_command_line_arguments() -> argparse.Namespace:
     """
@@ -38,7 +52,7 @@ def parse_command_line_arguments() -> argparse.Namespace:
     )
     return parser.parse_args()
 
-
+import time
 def run(
     spine: SpineInterface,
     spine_config: dict,
@@ -67,10 +81,24 @@ def run(
     spine.start(spine_config)
     observation = spine.get_observation()  # pre-reset observation
     while True:
+        start = time.time()
         observation = spine.get_observation()
+        end = time.time()
+        delta = end - start
+        delta_ms = delta * 1000
+        
+        # obs_str = f"[Observation] time: {delta_ms:.4f} ms"
         action = controller.cycle(observation, dt)
+
         spine.set_action(action)
         debug["rate"] = {"slack": rate.slack}
+        
+        end = time.time()
+        delta = end - start
+        delta_ms = delta * 1000
+        # print(obs_str)
+        # print(f"[Cycle] time: {delta_ms:.4f} ms")
+        
         rate.sleep()
 
 
@@ -104,6 +132,7 @@ if __name__ == "__main__":
 
     spine = SpineInterface()
     try:
+        # cProfile.run("run(spine, spine_config)")
         run(spine, spine_config)
     except KeyboardInterrupt:
         logging.info("Caught a keyboard interrupt")

@@ -7,6 +7,20 @@ load("//tools/lint:lint.bzl", "add_lint_tests")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "joint_filter",
+    hdrs = [
+        "JointFilter.h",
+      ],
+    srcs = [
+        "JointFilter.cpp",
+    ],
+    deps = [
+        "@vulp//vulp/observation:observer",
+        "@vulp//vulp/utils:low_pass_filter",
+    ],
+)
+
+cc_library(
     name = "wheel_contact",
     hdrs = [
         "WheelContact.h",
@@ -51,6 +65,7 @@ cc_library(
     name = "observers",
     deps = [
         ":floor_contact",
+        ":joint_filter",
         ":wheel_contact",
         ":wheel_odometry",
     ],
