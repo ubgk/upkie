@@ -31,7 +31,7 @@ class MeasurementModel:
         self.knee_torques = data['knee_torques']
         self.contact_probabilities = data['P_contact']
 
-    def get_contact_probability(self, xi: list[float]) -> float:
+    def get_contact_probability(self, xi: "list[float]") -> float:
         """
         Lookup the contact probability for a given wheel and knee torque.
 
@@ -107,7 +107,7 @@ class TransitionModel:
     def logistic(x: float, midpoint: float, slope: float) -> float:
         return 1 / (1 + np.exp(-slope * (x - midpoint)))
 
-    def cycle(self, observation: dict) -> tuple[float, float]:
+    def cycle(self, observation: dict) -> "tuple[float, float]":
         """
         Update the measurement model with a new observation.
 
@@ -141,13 +141,13 @@ class TransitionModel:
         # Check that we only have one window
         assert spectogram.shape[1] == 1 and t.shape == (1,), "We only expect one window at a time!"
 
-        # Compute the total power in the window, and the probability of a transition in any direction
-        
+        # Compute the total power in the window, and the probability of a transition in any direction        
         self.total_power = spectogram.sum()
         self.total_power_norm = self.vertical_accelerations[mask] / self.vertical_accelerations[mask]
         self.p_transition = self.logistic(self.total_power, self.transition_midpoint, self.transition_slope)
 
         # Compute the median frequency
+        print(f"{self.total_power=}")
         norm_spectogram = spectogram / self.total_power
         spectogram_cdf = np.cumsum(norm_spectogram, axis=0)
         median_freq = f[np.argmin(np.abs(spectogram_cdf - 0.5))]

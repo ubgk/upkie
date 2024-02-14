@@ -133,8 +133,8 @@ if __name__ == "__main__":
 
     spine = SpineInterface()
     try:
-        cProfile.run("run(spine, spine_config)")
-        # run(spine, spine_config)
+        # cProfile.run("run(spine, spine_config)")
+        run(spine, spine_config)
     except KeyboardInterrupt:
         logging.info("Caught a keyboard interrupt")
     except Exception:
