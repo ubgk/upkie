@@ -8,6 +8,7 @@
 import gin
 import numpy as np
 from wheel_controller import WheelController
+from upkie.utils.contact_models import MeasurementModel, TransitionModel
 
 from upkie.utils.clamp import clamp
 
@@ -105,7 +106,7 @@ class ServoController:
         # start = time.time()
 
         # Measurement model update
-        self.measurement_model.cycle(observation)
+        # self.measurement_model.cycle(observation)
 
         # end = time.time()
         # delta = end - start
@@ -115,7 +116,7 @@ class ServoController:
         # start = time.time()
 
         # Transition model update
-        self.transition_model.cycle(observation)
+        # self.transition_model.cycle(observation)
 
         # end = time.time()
         # delta = end - start
@@ -141,8 +142,8 @@ class ServoController:
             self.__servo_action[joint_name]["kd_scale"] = kd_scale
 
         return {
-            "servo": self.servo_action,
+            "servo": self.__servo_action,
             "wheel_balancer": self.wheel_balancer.log(),
-            "measurement_model": self.measurement_model.log(),
-            "transition_model": self.transition_model.log(),
+            # "measurement_model": self.measurement_model.log(),
+            # "transition_model": self.transition_model.log(),
         }
