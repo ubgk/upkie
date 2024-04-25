@@ -117,6 +117,7 @@ def balance(
     stage_state_cost_weight: float,
     terminal_cost_weight: float,
     warm_start: bool,
+    lock_wheels: bool
 ):
     """!
     Run proportional balancer in gym environment with logging.
@@ -131,6 +132,8 @@ def balance(
     @param stage_state_cost_weight Weight for the stage state cost.
     @param terminal_cost_weight Weight for the terminal cost.
     @param warm_start If set, use the warm-starting feature of ProxQP.
+    @param lock_wheels If set, lock the wheels when the robot is not in
+        contact with the ground.
     """
     pendulum = PendularUpkie()
     mpc_problem = pendulum.build_mpc_problem(
@@ -204,12 +207,16 @@ def balance(
             planning_times[step] = perf_counter() - t0
 
         if not floor_contact:
-            commanded_velocity = low_pass_filter(
-                prev_output=commanded_velocity,
-                cutoff_period=0.1,
-                new_input=0.0,
-                dt=env.dt,
-            )
+            print("Robot is not in contact with the ground")
+            if lock_wheels:
+                commanded_velocity = 0.0
+            else:
+                commanded_velocity = low_pass_filter(
+                    prev_output=commanded_velocity,
+                    cutoff_period=0.1,
+                    new_input=0.0,
+                    dt=env.dt,
+                )
         elif plan.is_empty:
             logging.error("Solver found no solution to the MPC problem")
             logging.info("Continuing with previous action")

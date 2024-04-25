@@ -16,3 +16,4 @@ balance.stage_input_cost_weight = 1e-3
 balance.stage_state_cost_weight = 1e-3
 balance.terminal_cost_weight = 1.0
 balance.warm_start = True
+balance.lock_wheels = True
