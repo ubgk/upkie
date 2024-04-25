@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 load("//tools/lint:lint.bzl", "add_lint_tests")
+load("@pip_upkie//:requirements.bzl", "requirement")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -37,7 +38,14 @@ py_binary(
         ":controllers",
         "@rules_python//python/runfiles",
         "@vulp//:python",
-    ],
+    ] + select({
+        "//:pi64_config": [],
+        "//conditions:default": [
+            requirement("gin-config"),
+            requirement("loop-rate-limiters"),
+            requirement("numpy"),
+        ],
+    }),
 )
 
 py_binary(
@@ -50,7 +58,7 @@ py_binary(
     imports = ["."],
 
     data = [
-        "//agents/pid_balancer/config",
+        "//pid_balancer/config",
     ] + select({
         "//:pi64_config": ["//spines:pi3hat_spine"],
         "//conditions:default": [],

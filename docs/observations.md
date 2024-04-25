@@ -7,12 +7,12 @@ Here is an index of observation dictionaries. Keys are a shorthand for nested di
 | `imu` | Inertial measurement unit on the pi3hat. See also [`ImuData`](https://upkie.github.io/vulp/structvulp_1_1actuation_1_1ImuData.html) |
 | `imu.angular_velocity` | Body angular velocity of the IMU frame in [rad] / [s] |
 | `imu.linear_acceleration` | Body linear acceleration of the IMU in [m] / [s]² |
-| `imu.orientation` | Unit quaternion of the orientation from the IMU frame to the attitude reference system (ARS) frame |
+| `imu.orientation` | Unit quaternion (``qw``, ``qx``, ``qy``, ``qz``) of the orientation from the IMU frame to the attitude reference system (ARS) frame |
 | `servos` | Servo motor measurements |
-| `servos.<X>` | Observations for servo ``X`` in the servo layout @ref upkie::config::servo_layout |
-| `servos.<X>.position` | Angle between the stator and the rotor in [rad] |
-| `servos.<X>.torque` | Joint torque in [N] * [m] |
-| `servos.<X>.velocity` | Angular velocity of the rotor w.r.t. stator in rotor, in [rad] / [s] |
+| `servos.X` | Observations for servo ``X`` in the servo layout @ref upkie::config::servo_layout |
+| `servos.X.position` | Angle between the stator and the rotor in [rad] |
+| `servos.X.torque` | Joint torque in [N] * [m] |
+| `servos.X.velocity` | Angular velocity of the rotor w.r.t. stator in rotor, in [rad] / [s] |
 | `wheel_odometry.position` | Ground position in [m], see @ref upkie::observers::WheelOdometry |
 | `wheel_odometry.velocity` | Ground velocity in [m] / [s], see @ref upkie::observers::WheelOdometry |
 
@@ -33,3 +33,14 @@ See also [Sensors](@ref sensors).
   <dd>Measure the relative motion of the floating base with respect to the floor. Wheel odometry is part of their secondary task (after keeping the head straight), which is to stay around the same spot on the floor.</dd>
 </dl>
 
+## Attitude reference system
+
+The attitude reference system (ARS) frame that the IMU filter maps to has its x-axis pointing forward, y-axis pointing to the right and z-axis pointing down ([details](https://github.com/mjbots/pi3hat/blob/ab632c82bd501b9fcb6f8200df0551989292b7a1/docs/reference.md#orientation)). This is not the convention we use in the world frame, where the x-axis points forward, the y-axis points left and the z-axis points up. The rotation matrix from the ARS frame to the world frame is thus:
+
+\f$
+R_{WA} = \begin{bmatrix}
+    1 & 0 & 0 \\
+    0 & -1 & 0 \\
+    0 & 0 & -1 \\
+\end{bmatrix}
+\f$

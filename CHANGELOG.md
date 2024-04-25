@@ -7,18 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- dependencies: Update Vulp to 2.2.2
+- envs: Bump ``UpkieServos`` version number to 4
+- envs: Restrict observation space of ``UpkieServos`` to servos
+
+## [3.4.0] - 2024-03-21
+
+### Added
+
+- Add ``--build`` argument to the simulation script
+- CICD: Run ShellCheck on scripts
+- Clear shared-memory when starting the Bullet spine
+- Script to dump all servo motor-driver configurations
+
+### Changed
+
+- dependencies: Update Upkie description to 1.5.0
+- dependencies: Update Vulp to 2.2.1
+- Don't build simulation spine if execution fails
+- Move agents' ``requirements.txt`` files to optional project dependencies
+- palinode: Rename ``run_pid_balancer.sh`` to ``try_pid_balancer.sh`` 😊
+- Rename top-level run script to ``run_pid_balancer.sh``
+
+### Fixed
+
+- Fix Gymnasium API in the readme example (thanks to @araffin)
+- Handle closing of GUI window in simulation script
+- Make sure all ``UpkieServos`` box observations are proper arrays
+
+### Removed
+
+- Move MPC balancer to its own repository
+- Move PPO balancer to its own repository
+
+## [3.3.0] - 2024-02-20
+
 ### Added
 
 - Script to run any of the standard agents
+- spines: `bullet_spine` accepts extra URDFs as arguments (thanks to @ubgk)
 
 ### Changed
 
 - dependencies: Bump loop-rate-limiters to 1.0.0
-- Replace posix-ipc by the shared-memory class from Python standard library
+- dependencies: Replace posix-ipc by shared-memory from the standard library
+- envs: Redirect logging to /env prefix
+- envs: Rename default action in UpkieServos to neutral, its position is NaN
+- Minimum Python version is now 3.8
 
 ### Removed
 
 - Script to compile and run the PID balancer
+- utils: ActionError exception
 
 ## [3.2.0] - 2024-02-08
 
@@ -37,8 +79,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - envs: Default velocity in `UpkieServos` is now zero
 - envs: Observation and action values are `float` rather than `np.float32`
 - envs: Specify maximum torques in `UpkieGroundVelocity`
+- palinode: Rename ``try_pid_balancer.sh`` to ``start_pid_balancer.sh`` 😊
 - Simulation script downloads a binary if available, o/w compiles from source (thanks to @pgraverdy)
-- whoopsies: Rename ``try_pid_balancer.sh`` to ``start_pid_balancer.sh`` 😊
 
 ### Fixed
 
@@ -135,7 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Make Makefile date command more portable (thanks to @boragokbakan)
+- Make Makefile date command more portable (thanks to @ubgk)
 - PPO balancer: Correct save frequency during training
 - PPO balancer: Run policy deterministically after training
 - envs: Merge default and runtime configuration dictionaries
@@ -215,7 +257,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PPO balancer: Configure main script process on the Raspberry Pi
 - PPO balancer: Disable rate limiter during training
-- Wheel balancer: Handle SpineInterface failures when forking a Bullet simulation (thanks to @boragokbakan)
+- Wheel balancer: Handle SpineInterface failures when forking a Bullet simulation (thanks to @ubgk)
 - observers: Check whether floor contact observer is initialized properly
 - tools: Fix permissions of `vcgencheck`
 
@@ -260,7 +302,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support macOS operating systems (thanks to @boragokbakan)
+- Support macOS operating systems (thanks to @ubgk)
 - config: Top-level configuration submodule for robot-wide configuration
 - spines: Build and deploy the mock spine to the Raspberry Pi
 - tools: CPU frequency scaling scripts
@@ -427,7 +469,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Starting this changelog.
 
-[unreleased]: https://github.com/upkie/upkie/compare/v3.2.0...HEAD
+[unreleased]: https://github.com/upkie/upkie/compare/v3.4.0...HEAD
+[3.4.0]: https://github.com/upkie/upkie/compare/v3.3.0...v3.4.0
+[3.3.0]: https://github.com/upkie/upkie/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/upkie/upkie/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/upkie/upkie/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/upkie/upkie/compare/v2.0.0...v3.0.0

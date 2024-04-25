@@ -7,24 +7,21 @@
 """Tests for UpkieServos environment."""
 
 import unittest
-
-import numpy as np
 from multiprocessing.shared_memory import SharedMemory
 
+import numpy as np
 
 from upkie.envs import UpkieServos
 from upkie.envs.tests.mock_spine import MockSpine
-from upkie.utils.exceptions import ActionError
 
 
 class TestUpkieServos(unittest.TestCase):
     def setUp(self):
-        shm_name = "/vroum"
-        shared_memory = SharedMemory(shm_name, size=42, create=True)
+        shared_memory = SharedMemory(name=None, size=42, create=True)
         self.env = UpkieServos(
             fall_pitch=1.0,
             frequency=100.0,
-            shm_name=shm_name,
+            shm_name=shared_memory._name,
         )
         shared_memory.close()
         self.env._spine = MockSpine()
@@ -33,18 +30,22 @@ class TestUpkieServos(unittest.TestCase):
         observation, info = self.env.reset()
         spine_observation = info["spine_observation"]
         self.assertAlmostEqual(
-            observation["wheel_odometry"]["position"],
-            spine_observation["wheel_odometry"]["position"],
+            observation["left_wheel"]["position"],
+            spine_observation["servo"]["left_wheel"]["position"],
         )
         self.assertGreaterEqual(spine_observation["number"], 1)
 
-        imu = observation["imu"]
-        self.assertIsInstance(imu["angular_velocity"], np.ndarray)
-        self.assertIsInstance(imu["linear_acceleration"], np.ndarray)
-        self.assertIsInstance(imu["orientation"], np.ndarray)
-        self.assertEqual(imu["angular_velocity"].shape, (3,))
-        self.assertEqual(imu["linear_acceleration"].shape, (3,))
-        self.assertEqual(imu["orientation"].shape, (4,))
+        right_knee = observation["right_knee"]
+        self.assertIsInstance(right_knee["position"], np.ndarray)
+        self.assertIsInstance(right_knee["velocity"], np.ndarray)
+        self.assertIsInstance(right_knee["torque"], np.ndarray)
+        self.assertIsInstance(right_knee["temperature"], np.ndarray)
+        self.assertIsInstance(right_knee["voltage"], np.ndarray)
+        self.assertEqual(right_knee["position"].shape, (1,))
+        self.assertEqual(right_knee["velocity"].shape, (1,))
+        self.assertEqual(right_knee["torque"].shape, (1,))
+        self.assertEqual(right_knee["temperature"].shape, (1,))
+        self.assertEqual(right_knee["voltage"].shape, (1,))
 
     def test_reward(self):
         self.env.reset()
@@ -57,12 +58,6 @@ class TestUpkieServos(unittest.TestCase):
         }
         _, reward, _, _, _ = self.env.step(action)
         self.assertAlmostEqual(reward, 1.0)  # survival reward
-
-    def test_action_needs_position(self):
-        observation, info = self.env.reset()
-        action = {servo: {"velocity": 0.0} for servo in self.env.JOINT_NAMES}
-        with self.assertRaises(ActionError):
-            self.env.step(action)
 
     def test_action_clamping(self):
         action = {
@@ -94,7 +89,7 @@ class TestUpkieServos(unittest.TestCase):
         self.env.step(action)
         self.assertAlmostEqual(
             self.env._spine.action["servo"][not_wheel]["position"],
-            float(self.env.action_space[not_wheel]["position"].high),
+            self.env.action_space[not_wheel]["position"].high[0],
             places=5,
         )
 

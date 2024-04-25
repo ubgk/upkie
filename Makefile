@@ -25,6 +25,7 @@ help:
 	@grep -P '^[a-zA-Z0-9_-]+:.*? ## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "    \033[36m%-24s\033[0m %s\n", $$1, $$2}'
 	@echo "\nRaspberry Pi targets:\n"
 	@grep -P '^[a-zA-Z0-9_-]+:.*?### .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?### "}; {printf "    \033[36m%-24s\033[0m %s\n", $$1, $$2}'
+	@echo ""  # manicure
 .DEFAULT_GOAL := help
 
 # HOST TARGETS
@@ -40,21 +41,23 @@ clean: clean_broken_links  ## clean all local build and intermediate files
 
 .PHONY: build
 build: clean_broken_links  ## build Raspberry Pi targets
-	$(BAZEL) build --config=pi64 //agents/mpc_balancer
-	$(BAZEL) build --config=pi64 //agents/pid_balancer
-	$(BAZEL) build --config=pi64 //agents/ppo_balancer:run
+	$(BAZEL) build --config=pi64 //pid_balancer
 	$(BAZEL) build --config=pi64 //spines:mock_spine
 	$(BAZEL) build --config=pi64 //spines:pi3hat_spine
 
 .PHONY: coverage
 coverage:  ## check unit test coverage and open an HTML report in Firefox
 	$(BAZEL) coverage --combined_report=lcov --compilation_mode=fastbuild --instrument_test_targets //...
-	genhtml $(COVERAGE_DIR)/_coverage_report.dat -o $(COVERAGE_DIR)
-	firefox $(COVERAGE_DIR)/index.html
+	@if [ -z "$(shell which genhtml)" ]; then\
+		echo "Error: genhtml not found, is lcov installed?"; \
+	else \
+		genhtml $(COVERAGE_DIR)/_coverage_report.dat -o $(COVERAGE_DIR); \
+		firefox $(COVERAGE_DIR)/index.html; \
+	fi
 
 .PHONY: check_upkie_name
 check_upkie_name:
-	@ if [ -z "${UPKIE_NAME}" ]; then \
+	@if [ -z "${UPKIE_NAME}" ]; then \
 		echo "ERROR: Environment variable UPKIE_NAME is not set.\n"; \
 		echo "This variable should contain the robot's hostname or IP address for SSH. "; \
 		echo "You can define it inline for a one-time use:\n"; \
@@ -71,7 +74,7 @@ upload: check_upkie_name build  ## upload built targets to the Raspberry Pi
 	ssh $(REMOTE) sudo date -s "$(CURDATE)"
 	ssh $(REMOTE) mkdir -p $(PROJECT_NAME)
 	ssh $(REMOTE) sudo find $(PROJECT_NAME) -type d -name __pycache__ -user root -exec chmod go+wx {} "\;"
-	rsync -Lrtu --delete-after --delete-excluded --exclude bazel-out/ --exclude bazel-testlogs/ --exclude bazel-$(CURDIR_NAME) --exclude bazel-$(PROJECT_NAME)/ --exclude logs/ --exclude training/ --progress $(CURDIR)/ $(REMOTE):$(PROJECT_NAME)/
+	rsync -Lrtu --delete-after --delete-excluded --exclude bazel-out/ --exclude bazel-testlogs/ --exclude bazel-$(CURDIR_NAME) --exclude bazel-$(PROJECT_NAME)/ --exclude cache/ --exclude logs/ --exclude training/ --progress $(CURDIR)/ $(REMOTE):$(PROJECT_NAME)/
 
 # REMOTE SPINE TARGETS
 # ====================
@@ -86,18 +89,12 @@ run_pi3hat_spine:  ### run the pi3hat spine on the Raspberry Pi
 # REMOTE AGENT TARGETS
 # ====================
 
-run_mpc_balancer:  ### run the MPC balancer on the Raspberry Pi
-	$(RASPUNZEL) run -s //agents/mpc_balancer:mpc_balancer
-
 # A specific gain config file can be loaded with the CONFIG variable
 # Example: ``make run_pid_balancer CONFIG=michel-strogoff``
-# where michel-strogoff.gin is a file in agents/pid_balancer/config/
+# where michel-strogoff.gin is a file in pid_balancer/config/
 # By default we detect the config file to load by running `hostname`.
 PID_BALANCER_CONFIG = $(or ${CONFIG}, hostname)
 
 # NB: run_pid_balancer is used in build instructions
 run_pid_balancer:  ### run the test balancer on the Raspberry Pi
-	$(RASPUNZEL) run -s //agents/pid_balancer:pid_balancer -- --config $(PID_BALANCER_CONFIG)
-
-run_ppo_balancer:  ### run the PPO balancer on the Raspberry Pi
-	$(RASPUNZEL) run -s //agents/ppo_balancer:run
+	$(RASPUNZEL) run -s //pid_balancer:pid_balancer -- --config $(PID_BALANCER_CONFIG)

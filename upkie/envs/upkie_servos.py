@@ -12,7 +12,7 @@ import upkie_description
 from gymnasium import spaces
 
 from upkie.utils.clamp import clamp_and_warn
-from upkie.utils.exceptions import ActionError, ModelError
+from upkie.utils.exceptions import ModelError
 from upkie.utils.pinocchio import (
     box_position_limits,
     box_torque_limits,
@@ -24,13 +24,12 @@ from .upkie_base_env import UpkieBaseEnv
 
 
 class UpkieServos(UpkieBaseEnv):
-
     """!
-    Upkie with full observation and joint position-velocity-torque actions.
+    Upkie with with action and observation for each servo.
 
     ### Action space
 
-    The action space is a dictionary with one key for each servo on Upkie:
+    The action space is a dictionary with one key for each servo:
 
     - ``left_hip``: Left hip joint (qdd100)
     - ``left_hip``: Left knee joint (qdd100)
@@ -39,7 +38,7 @@ class UpkieServos(UpkieBaseEnv):
     - ``right_hip``: Right knee joint (qdd100)
     - ``right_hip``: Right wheel joint (mj5208)
 
-    The value for each dictionary is itself a dictionary for each
+    The value for each dictionary is a dictionary with the following keys:
 
     - ``position``: Joint angle in [rad] (NaN to disable) (required).
     - ``velocity``: Joint velocity in [rad] / [s] (required).
@@ -53,8 +52,18 @@ class UpkieServos(UpkieBaseEnv):
 
     ### Observation space
 
-    Obversations from this environment are full dictionary reported by the
-    spine. See @ref observations.
+    The observation space is a dictionary with one key for each servo. The
+    value for each key is a dictionary with keys:
+
+    - ``position``: Joint angle in [rad].
+    - ``velocity``: Joint velocity in [rad] / [s].
+    - ``torque``: Joint torque in [N] * [m].
+    - ``temperature``: Servo temperature in degree Celsius.
+    - ``voltage": Power bus voltage of the servo, in [V].
+
+    As with all Upkie environments, full observations from the spine (detailed
+    in @ref observations) are also available in the ``info`` dictionary
+    returned by the reset and step functions.
 
     ### Attributes
 
@@ -83,7 +92,7 @@ class UpkieServos(UpkieBaseEnv):
     )
 
     robot: pin.RobotWrapper
-    version: int = 3
+    version: int = 4
 
     def __init__(
         self,
@@ -129,7 +138,7 @@ class UpkieServos(UpkieBaseEnv):
             )
 
         action_space = {}
-        default_action = {}
+        neutral_action = {}
         max_action = {}
         min_action = {}
         servo_space = {}
@@ -209,8 +218,8 @@ class UpkieServos(UpkieBaseEnv):
                     ),
                 }
             )
-            default_action[name] = {
-                # "position": np.nan,  # no default, needs to be explicit
+            neutral_action[name] = {
+                "position": np.nan,
                 "velocity": 0.0,
                 "feedforward_torque": 0.0,
                 "kp_scale": 1.0,
@@ -238,63 +247,21 @@ class UpkieServos(UpkieBaseEnv):
         self.action_space = spaces.Dict(action_space)
 
         # gymnasium.Env: observation_space
-        self.observation_space = spaces.Dict(
-            {
-                "imu": spaces.Dict(
-                    {
-                        "angular_velocity": spaces.Box(
-                            low=-np.inf,
-                            high=np.inf,
-                            shape=(3,),
-                            dtype=float,
-                        ),
-                        "linear_acceleration": spaces.Box(
-                            low=-np.inf,
-                            high=np.inf,
-                            shape=(3,),
-                            dtype=float,
-                        ),
-                        "orientation": spaces.Box(
-                            low=-1.0,
-                            high=1.0,
-                            shape=(4,),
-                            dtype=float,
-                        ),
-                    }
-                ),
-                "servo": spaces.Dict(servo_space),
-                "wheel_odometry": spaces.Dict(
-                    {
-                        "position": spaces.Box(
-                            low=-np.inf,
-                            high=np.inf,
-                            shape=(1,),
-                            dtype=float,
-                        ),
-                        "velocity": spaces.Box(
-                            low=-np.inf,
-                            high=np.inf,
-                            shape=(1,),
-                            dtype=float,
-                        ),
-                    }
-                ),
-            }
-        )
+        self.observation_space = spaces.Dict(servo_space)
 
         # Class members
-        self.__default_action = default_action
+        self.__neutral_action = neutral_action
         self.__max_action = max_action
         self.__min_action = min_action
         self.robot = robot
 
-    def get_default_action(self) -> dict:
+    def get_neutral_action(self) -> dict:
         """!
-        Get a default action dictionary.
+        Get the neutral action where servos don't move.
 
-        @returns Default action dictionary.
+        @returns Neutral action where servos don't move.
         """
-        return self.__default_action.copy()
+        return self.__neutral_action.copy()
 
     def get_env_observation(self, spine_observation: dict):
         """!
@@ -306,28 +273,14 @@ class UpkieServos(UpkieBaseEnv):
         # If creating a new object turns out to be too slow we can switch to
         # updating in-place.
         return {
-            "imu": {
-                "angular_velocity": np.array(
-                    spine_observation["imu"]["angular_velocity"],
-                ),
-                "linear_acceleration": np.array(
-                    spine_observation["imu"]["linear_acceleration"]
-                ),
-                "orientation": np.array(
-                    spine_observation["imu"]["orientation"]
-                ),
-            },
-            "servo": {
-                joint: {
-                    key: spine_observation["servo"][joint][key]
-                    for key in self.observation_space["servo"][joint]
-                }
-                for joint in self.JOINT_NAMES
-            },
-            "wheel_odometry": {
-                "position": spine_observation["wheel_odometry"]["position"],
-                "velocity": spine_observation["wheel_odometry"]["velocity"],
-            },
+            joint: {
+                key: np.array(
+                    [spine_observation["servo"][joint][key]],
+                    dtype=float,
+                )
+                for key in self.observation_space[joint]
+            }
+            for joint in self.JOINT_NAMES
         }
 
     def get_spine_action(self, env_action: dict) -> dict:
@@ -341,16 +294,11 @@ class UpkieServos(UpkieBaseEnv):
         for joint in self.JOINT_NAMES:
             servo_action = {}
             for key in self.ACTION_KEYS:
-                try:
-                    action = (
-                        env_action[joint][key]
-                        if key in env_action[joint]
-                        else self.__default_action[joint][key]
-                    )
-                except KeyError as key_error:
-                    raise ActionError(
-                        f'Missing key "{key}" required for joint "{joint}"'
-                    ) from key_error
+                action = (
+                    env_action[joint][key]
+                    if key in env_action[joint]
+                    else self.__neutral_action[joint][key]
+                )
                 servo_action[key] = clamp_and_warn(
                     action,
                     self.__min_action[joint][key],

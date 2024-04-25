@@ -1,5 +1,6 @@
 # -*- python -*-
 #
+# SPDX-License-Identifier: Apache-2.0
 # Copyright 2022 Stéphane Caron
 # Copyright 2024 Inria
 
@@ -12,6 +13,6 @@ def vulp_repository():
     git_repository(
         name = "vulp",
         remote = "https://github.com/upkie/vulp.git",
-        commit = "b179d224da0468a93b6a9a051f6137b70f86498c",
-        shallow_since = "1705597050 +0100",
+        commit = "8e1fc42cd3d6760d8c0d7d6c7014028e1c30b5a9",
+        shallow_since = "1711634455 +0100",
     )
