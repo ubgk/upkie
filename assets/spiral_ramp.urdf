@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<robot name="staircase">
+
+    <!-- Import the OBJ file -->
+    <mesh filename="spiral_ramp.obj" scale="1 1 1" />
+
+    <!-- Define the link -->
+    <link name="link">
+        <visual>
+            <geometry>
+                <mesh filename="spiral_ramp.obj" scale="1 1 1" />
+            </geometry>
+        </visual>
+    </link>
+
+    <!-- Define the joint -->
+    <joint name="fixed_joint" type="fixed">
+        <parent link="world" />
+        <child link="link" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </joint>
+
+</robot>
