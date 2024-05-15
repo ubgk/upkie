@@ -8,6 +8,8 @@
 
 #ifndef __APPLE__
 #include <vulp/observation/sources/Joystick.h>
+#else
+#include <vulp/observation/sources/Keyboard.h> // for macOS
 #endif
 
 #include <vulp/spine/Spine.h>
@@ -41,6 +43,8 @@ using vulp::observation::sources::CpuTemperature;
 
 #ifndef __APPLE__
 using vulp::observation::sources::Joystick;
+#else
+using vulp::observation::sources::Keyboard; // for macOS
 #endif
 
 using vulp::spine::Spine;
@@ -197,6 +201,10 @@ int main(const char* argv0, const CommandLineArguments& args) {
     spdlog::info("Joystick found");
     observation.connect_source(joystick);
   }
+#else
+  // Observation: Keyboard (for macOS)
+  auto keyboard = std::make_shared<Keyboard>();
+  observation.connect_source(keyboard);
 #endif
   // Observation: Filtered joint variables
   JointFilter::Parameters joint_filter_params;
@@ -227,7 +235,7 @@ int main(const char* argv0, const CommandLineArguments& args) {
 
   // Simulator
   const auto servo_layout = upkie::config::servo_layout();
-  const double base_altitude = args.space ? 0.0 : 0.6;  // [m]
+  const double base_altitude = args.space ? 0.0 : 2.6;  // [m]
   BulletInterface::Parameters bullet_params(Dictionary{});
   bullet_params.argv0 = argv0;
   bullet_params.dt = 1.0 / args.spine_frequency;

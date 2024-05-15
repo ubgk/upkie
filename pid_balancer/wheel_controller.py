@@ -227,6 +227,12 @@ class WheelController:
             unfiltered_velocity = -max_velocity * axis_value
         except KeyError:
             unfiltered_velocity = 0.0
+
+            if observation["keyboard"]["w"]:
+                unfiltered_velocity += self.max_target_velocity
+            if observation["keyboard"]["s"]:
+                unfiltered_velocity -= self.max_target_velocity
+
         self.target_ground_velocity = abs_bounded_derivative_filter(
             self.target_ground_velocity,
             unfiltered_velocity,
@@ -246,6 +252,12 @@ class WheelController:
             joystick_value = observation["joystick"]["right_axis"][0]
         except KeyError:
             joystick_value = 0.0
+            
+            if observation["keyboard"]["d"]:
+                joystick_value += 1
+            if observation["keyboard"]["a"]:
+                joystick_value -= 1
+
         joystick_abs = abs(joystick_value)
         joystick_sign = np.sign(joystick_value)
 
