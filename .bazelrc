@@ -6,6 +6,7 @@ build --compilation_mode=opt
 build --copt="-Werror=return-type"
 build --cxxopt=-std=c++17
 build --incompatible_default_to_explicit_init_py  # for vulp imports
+build --incompatible_strict_action_env  # use static PATH
 
 coverage --combined_report=lcov
 coverage --compilation_mode=opt
