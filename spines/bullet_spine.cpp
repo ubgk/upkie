@@ -27,6 +27,8 @@
 
 #ifndef __APPLE__
 #include "upkie/cpp/sensors/Joystick.h"
+#else
+#include "upkie/cpp/sensors/Keyboard.h" // for macOS
 #endif
 
 namespace spines::bullet {
@@ -43,6 +45,8 @@ using upkie::cpp::spine::Spine;
 
 #ifndef __APPLE__
 using upkie::cpp::sensors::Joystick;
+#else
+using upkie::cpp::sensors::Keyboard; // for macOS
 #endif
 
 //! Command-line arguments for the Bullet spine.
@@ -203,6 +207,10 @@ int main(const char* argv0, const CommandLineArguments& args) {
     spdlog::info("Joystick found");
     observation.connect_sensor(joystick);
   }
+#else
+  // Observation: Keyboard (for macOS)
+  auto keyboard = std::make_shared<Keyboard>();
+  observation.connect_sensor(keyboard);
 #endif
   // Observation: Filtered joint variables
   JointFilter::Parameters joint_filter_params;
