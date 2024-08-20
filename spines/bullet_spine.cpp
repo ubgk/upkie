@@ -19,6 +19,7 @@
 #include "upkie/cpp/observers/FloorContact.h"
 #include "upkie/cpp/observers/ObserverPipeline.h"
 #include "upkie/cpp/observers/WheelOdometry.h"
+#include "upkie/cpp/observers/JointFilter.h"
 #include "upkie/cpp/sensors/CpuTemperature.h"
 #include "upkie/cpp/spine/Spine.h"
 #include "upkie/cpp/utils/get_log_path.h"
@@ -36,6 +37,7 @@ using upkie::cpp::observers::BaseOrientation;
 using upkie::cpp::observers::FloorContact;
 using upkie::cpp::observers::ObserverPipeline;
 using upkie::cpp::observers::WheelOdometry;
+using upkie::cpp::observers::JointFilter;
 using upkie::cpp::sensors::CpuTemperature;
 using upkie::cpp::spine::Spine;
 
@@ -202,6 +204,15 @@ int main(const char* argv0, const CommandLineArguments& args) {
     observation.connect_sensor(joystick);
   }
 #endif
+  // Observation: Filtered joint variables
+  JointFilter::Parameters joint_filter_params;
+  joint_filter_params.dt = 1.0 / args.spine_frequency;
+  joint_filter_params.cutoff_period = 0.2;
+  joint_filter_params.upper_leg_joints = upkie::cpp::model::upper_leg_joints();
+  joint_filter_params.wheels = upkie::cpp::model::wheel_joints();
+  joint_filter_params.variables = {"position", "velocity", "torque"};
+  auto joint_filter = std::make_shared<JointFilter>(joint_filter_params);
+  observation.append_observer(joint_filter);
 
   // Observation: Floor contact
   FloorContact::Parameters floor_contact_params;
