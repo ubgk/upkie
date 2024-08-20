@@ -2,7 +2,7 @@ bullet:
     follower_camera: false
     gui: true
     reset:
-        position_base_in_world: [0.0, 0.0, 2.6]
+        position_base_in_world: [0.0, 0.0, 6.6]
     torque_control:
         kp: 20.0
         kd: 1.0
