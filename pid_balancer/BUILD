@@ -29,6 +29,7 @@ py_binary(
     data = [
         ":config",
         "//spines:bullet_spine",
+        "//assets:stairs"
     ],
     deps = [
         "//upkie",

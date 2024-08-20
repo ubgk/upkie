@@ -35,6 +35,20 @@ cc_library(
 )
 
 cc_library(
+    name = "joint_filter",
+    hdrs = [
+        "JointFilter.h",
+      ],
+    srcs = [
+        "JointFilter.cpp",
+    ],
+    deps = [
+        ":observer",
+        "//upkie/cpp/utils:low_pass_filter",
+    ],
+)
+
+cc_library(
     name = "observe_servos",
     hdrs = ["observe_servos.h"],
     srcs = ["observe_servos.cpp"],
@@ -98,6 +112,7 @@ cc_library(
         ":base_orientation",
         ":floor_contact",
         ":history_observer",
+        ":joint_filter",
         ":observe_servos",
         ":observe_time",
         ":observer",

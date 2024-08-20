@@ -233,7 +233,8 @@ int main(const char* argv0, const CommandLineArguments& args) {
 
   // Simulator
   const auto servo_layout = upkie::cpp::model::servo_layout();
-  const double base_altitude = args.space ? 0.0 : 0.6;  // [m]
+  const double base_altitude = args.space ? 0.0 : 2.6;  // [m]
+
   BulletInterface::Parameters bullet_params(Dictionary{});
   bullet_params.argv0 = argv0;
   bullet_params.dt = 1.0 / args.spine_frequency;

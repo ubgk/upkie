@@ -91,7 +91,7 @@ if __name__ == "__main__":
     clear_shared_memory()
     pid = os.fork()
     if pid == 0:  # child process: spine
-        spine_argv = ["--spine-frequency", "1000.0", "--show"]
+        spine_argv = ["--spine-frequency", "1000.0", "--show", "--extra-urdf-path", "assets/stairs.urdf"]
         os.execvp(spine_path, ["bullet"] + spine_argv)
     else:
         spine = None
