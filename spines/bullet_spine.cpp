@@ -17,9 +17,9 @@
 #include "upkie/cpp/model/servo_layout.h"
 #include "upkie/cpp/observers/BaseOrientation.h"
 #include "upkie/cpp/observers/FloorContact.h"
+#include "upkie/cpp/observers/JointFilter.h"
 #include "upkie/cpp/observers/ObserverPipeline.h"
 #include "upkie/cpp/observers/WheelOdometry.h"
-#include "upkie/cpp/observers/JointFilter.h"
 #include "upkie/cpp/sensors/CpuTemperature.h"
 #include "upkie/cpp/spine/Spine.h"
 #include "upkie/cpp/utils/get_log_path.h"
@@ -28,7 +28,7 @@
 #ifndef __APPLE__
 #include "upkie/cpp/sensors/Joystick.h"
 #else
-#include "upkie/cpp/sensors/Keyboard.h" // for macOS
+#include "upkie/cpp/sensors/Keyboard.h"  // for macOS
 #endif
 
 namespace spines::bullet {
@@ -37,16 +37,16 @@ using palimpsest::Dictionary;
 using upkie::cpp::actuation::BulletInterface;
 using upkie::cpp::observers::BaseOrientation;
 using upkie::cpp::observers::FloorContact;
+using upkie::cpp::observers::JointFilter;
 using upkie::cpp::observers::ObserverPipeline;
 using upkie::cpp::observers::WheelOdometry;
-using upkie::cpp::observers::JointFilter;
 using upkie::cpp::sensors::CpuTemperature;
 using upkie::cpp::spine::Spine;
 
 #ifndef __APPLE__
 using upkie::cpp::sensors::Joystick;
 #else
-using upkie::cpp::sensors::Keyboard; // for macOS
+using upkie::cpp::sensors::Keyboard;  // for macOS
 #endif
 
 //! Command-line arguments for the Bullet spine.
@@ -80,6 +80,9 @@ class CommandLineArguments {
         extra_urdf_paths.push_back(args.at(++i));
         spdlog::info("Command line: extra-urdf-path = {}",
                      extra_urdf_paths.back());
+      } else if (arg == "--base-altitude") {
+        base_altitude = std::stod(args.at(++i));
+        spdlog::info("Command line: base_altitude = {}", base_altitude);
       } else if (arg == "--spine-frequency") {
         spine_frequency = std::stol(args.at(++i));
         spdlog::info("Command line: spine_frequency = {} Hz", spine_frequency);
@@ -119,6 +122,9 @@ class CommandLineArguments {
               << "    Load extra URDFs into the environment.\n";
     std::cout << "--spine-frequency <frequency>\n"
               << "    Spine frequency in Hertz (default: 1000 Hz).\n";
+    std::cout << "--base-altitude \n"
+              << "    Altitude of the base, in the world frame."
+              << " Defaults to " << base_altitude << " m.\n";
     std::cout << "-v, --version\n"
               << "    Print out the spine version number.\n";
     std::cout << "\n";
@@ -130,6 +136,9 @@ class CommandLineArguments {
 
   //! Help flag
   bool help = false;
+
+  //! Base altitude
+  double base_altitude = 1.85;
 
   //! Log directory
   std::string log_dir = "";
@@ -241,7 +250,6 @@ int main(const char* argv0, const CommandLineArguments& args) {
 
   // Simulator
   const auto servo_layout = upkie::cpp::model::servo_layout();
-  const double base_altitude = args.space ? 0.0 : 2.6;  // [m]
 
   BulletInterface::Parameters bullet_params(Dictionary{});
   bullet_params.argv0 = argv0;
@@ -249,7 +257,7 @@ int main(const char* argv0, const CommandLineArguments& args) {
   bullet_params.floor = !args.space;
   bullet_params.gravity = !args.space;
   bullet_params.gui = args.show;
-  bullet_params.position_base_in_world = Eigen::Vector3d(0., 0., base_altitude);
+  bullet_params.position_base_in_world = Eigen::Vector3d(0., 0., args.base_altitude);
   bullet_params.robot_urdf_path = "external/upkie_description/urdf/upkie.urdf";
   bullet_params.env_urdf_paths = args.extra_urdf_paths;
   BulletInterface interface(servo_layout, bullet_params);
