@@ -112,19 +112,19 @@
   <joint name="stepOne_to_stepTwo" type="fixed">
     <parent link="stepOne"/>
     <child link="stepTwo"/>
-    <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+    <origin rpy="0 0 0" xyz="-2 0 0.25"/>
   </joint>
   
   <joint name="stepTwo_to_stepThree" type="fixed">
     <parent link="stepTwo"/>
     <child link="stepThree"/>
-    <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+    <origin rpy="0 0 0" xyz="-2 0 0.25"/>
   </joint>
 
   <joint name="stepThree_to_stepFour" type="fixed">
     <parent link="stepThree"/>
     <child link="stepFour"/>
-    <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+    <origin rpy="0 0 0" xyz="-2 0 0.25"/>
   </joint>
 
 
