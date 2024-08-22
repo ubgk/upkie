@@ -138,7 +138,7 @@ class CommandLineArguments {
   bool help = false;
 
   //! Base altitude
-  double base_altitude = 1.85;
+  double base_altitude = 2.60;
 
   //! Log directory
   std::string log_dir = "";
