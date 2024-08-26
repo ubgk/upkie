@@ -64,7 +64,7 @@ void JointFilter::read(const Dictionary& observation) {
       // filter variable
       filtered_variables_[joint][variable] =
           low_pass_filter(filtered_variables_[joint][variable],
-                          params_.cutoff_period, std::abs(reading), params_.dt);
+                          params_.cutoff_period, reading, params_.dt);
     }
   }
 }
