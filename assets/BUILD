@@ -11,5 +11,7 @@ filegroup(
         "stairs.urdf",
         "track.obj",
         "track.urdf",
+        "box_ramp.mtl",
+        "box_ramp.obj"
     ],
 )

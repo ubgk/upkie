@@ -1,6 +1,9 @@
 <?xml version="1.0" ?>
+
 <robot name="stairs">
+
   <link name="world"/>
+
   <link name="track">
   <contact>
       <lateral_friction value="1"/>
@@ -27,10 +30,43 @@
     </collision>
   </link>
   
+  <link name="ramp">
+  <contact>
+      <lateral_friction value="1"/>
+  </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+       <mass value=".0"/>
+       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="1.570796327 0 -1.570796327" xyz="0 0 0"/>
+      <geometry name="track">
+        <mesh filename="assets/box_ramp.obj" scale="1 1 1"/>
+      </geometry>     
+        <material name="powder">
+          <color rgba="1 0.7 0.7 1"/>orange
+        </material>
+    </visual>
+    <collision>
+      <origin rpy="1.570796327 0 -1.570796327" xyz="0 0 0"/>
+      <geometry name="track">
+        <mesh filename="assets/box_ramp.obj" scale="1 1 1"/>
+      </geometry>
+    </collision>
+  </link>
+
   <!-- Joints -->
   <joint name="world_to_track" type="fixed">
     <parent link="world"/>
     <child link="track"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
+
+  <joint name="track_to_ramp" type="fixed">
+    <parent link="track"/>
+    <child link="ramp"/>
+    <origin rpy="0 0 0" xyz="-0.55 -3.5 0.0"/>
+  </joint>
+
 </robot>
