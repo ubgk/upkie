@@ -13,7 +13,7 @@ cc_binary(
     ],
     data = [
         "@upkie_description",
-        "//assets:stairs"
+        "//assets:urdf_files",
     ],
     deps = [
         "//upkie/cpp/actuation:bullet_interface",

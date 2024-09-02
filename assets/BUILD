@@ -5,9 +5,11 @@
 package(default_visibility = ["//visibility:public"])
 
 filegroup(
-    name = "stairs",
+    name = "urdf_files",
     srcs = [
         "smooth_step.obj",
         "stairs.urdf",
+        "track.obj",
+        "track.urdf",
     ],
 )
