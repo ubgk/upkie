@@ -15,7 +15,9 @@
       <geometry name="track">
         <mesh filename="assets/track.obj" scale="1 1 1"/>
       </geometry>
-       <material name="beige"></material>
+       <material name="orange">
+                <color rgba="1 0.7 0.0 1"/>
+       </material>
     </visual>
     <collision>
       <origin rpy="1.570796327 0 0" xyz="0 0 0"/>
