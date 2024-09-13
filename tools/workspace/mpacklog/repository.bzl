@@ -8,7 +8,7 @@ def mpacklog_repository():
     """
     http_archive(
         name = "mpacklog",
-        sha256 = "389cbd249607f1d0a2bbf6d11cbf0690604966e29a8e75e50160cf0faab068c7",
+        sha256 = "94b613c484079dbb239f4dde6ec041e8696399b4a6fc68f22b4633d1fa561f2f",
         strip_prefix = "mpacklog.cpp-3.1.0",
         url = "https://github.com/ubgk/mpacklog.cpp/archive/refs/tags/v3.1.0.tar.gz",
     )
