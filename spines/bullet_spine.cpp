@@ -70,6 +70,8 @@ class CommandLineArguments {
         show = true;
       } else if (arg == "--space") {
         space = true;
+      } else if (arg == "--skydive") {
+        skydive = true;
       } else if (arg == "--extra-urdf-path") {
         extra_urdf_paths.push_back(args.at(++i));
         spdlog::info("Command line: extra-urdf-path = {}",
@@ -85,6 +87,12 @@ class CommandLineArguments {
         error = true;
       }
     }
+
+    if (space && skydive) {
+      spdlog::error("Cannot use both --space and --skydive, choose one!");
+      error = true;
+    }
+
     if (log_dir.length() < 1) {
       const char* env_log_dir = std::getenv("UPKIE_LOG_PATH");
       log_dir = (env_log_dir != nullptr) ? env_log_dir : "/tmp";
@@ -112,6 +120,8 @@ class CommandLineArguments {
               << "    Show the Bullet GUI.\n";
     std::cout << "--space\n"
               << "    No ground, no gravity, fly like an eagle!\n";
+    std::cout << "--skydive\n"
+              << "    No ground but gravity is enabled!\n";
     std::cout << "--extra-urdf-path\n"
               << "    Load extra URDFs into the environment.\n";
     std::cout << "--spine-frequency <frequency>\n"
@@ -144,6 +154,9 @@ class CommandLineArguments {
 
   //! Space mode (no ground, no gravity)
   bool space = false;
+
+  //! Skydive mode (no ground, gravity)
+  bool skydive = false;
 
   //! Extra URDF paths
   std::vector<std::string> extra_urdf_paths;
@@ -234,7 +247,7 @@ int main(const char* argv0, const CommandLineArguments& args) {
   BulletInterface::Parameters bullet_params(Dictionary{});
   bullet_params.argv0 = argv0;
   bullet_params.dt = 1.0 / args.spine_frequency;
-  bullet_params.floor = !args.space;
+  bullet_params.floor = !(args.space || args.skydive);
   bullet_params.gravity = !args.space;
   bullet_params.gui = args.show;
   bullet_params.position_base_in_world = Eigen::Vector3d(0., 0., base_altitude);
